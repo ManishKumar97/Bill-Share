@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "861316918961",
+    "project_id": "billshare-d6935",
+    "storage_bucket": "billshare-d6935.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:861316918961:android:100ae70a6b6fa43be8bc90",
+        "android_client_info": {
+          "package_name": "com.example.billshare"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "861316918961-lm36tl7niumi2oe4gvh9e6rbebjgb13m.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAP1Nz8p8OaG7h7-4PCnCssC1II1lpJICA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "861316918961-lm36tl7niumi2oe4gvh9e6rbebjgb13m.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
