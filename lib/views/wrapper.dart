@@ -20,7 +20,7 @@ class _WrapperState extends State<Wrapper> {
     if (user == null || user.uid == "") {
       return const Authenticate();
     } else {
-      return const Home();
+      return Home(email: user.email!);
     }
   }
 }

@@ -1,10 +1,12 @@
+import 'package:billshare/models/user.dart';
 import "package:flutter/material.dart";
 import 'package:billshare/views/settings/components/profile_menu.dart';
 import 'package:billshare/services/auth_service.dart';
 import "package:billshare/constants.dart";
 
 class Settings extends StatefulWidget {
-  const Settings({Key? key}) : super(key: key);
+  final AppUser user;
+  const Settings({Key? key, required this.user}) : super(key: key);
 
   @override
   State<Settings> createState() => _SettingsState();
@@ -41,6 +43,7 @@ class _SettingsState extends State<Settings> {
             const SizedBox(
               height: 20,
             ),
+            Text("Welcome ${widget.user.name!}"),
             ProfileMenu(
               text: "My Account",
               icon: const Icon(Icons.account_circle),

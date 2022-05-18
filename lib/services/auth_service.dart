@@ -8,7 +8,7 @@ class AuthService {
   AppUser? _userFromFirebaseUser(User? user,
       {String name = "", String email = ""}) {
     return user != null
-        ? AppUser(name: name, email: email, uid: user.uid)
+        ? AppUser(name: name, email: user.email, uid: user.uid, friends: [])
         : null;
   }
 
@@ -22,7 +22,12 @@ class AuthService {
       final result = await _auth.signInWithEmailAndPassword(
           email: email, password: password);
       User? user = result.user;
-      return _userFromFirebaseUser(user);
+      AppUser? loggedInUser;
+      if (user != null) {
+        loggedInUser = await db.getUserByEmail(email);
+      }
+      return loggedInUser;
+      // return _userFromFirebaseUser(user);
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
         print('No user found for that email.');
@@ -39,10 +44,13 @@ class AuthService {
       final result = await _auth.createUserWithEmailAndPassword(
           email: email, password: password);
       User? user = result.user;
+      AppUser? loggedInUser;
       if (user != null) {
-        db.registerNewUser(name, email, user);
+        loggedInUser =
+            AppUser(uid: user.uid, name: name, email: email, friends: []);
+        db.registerNewUser(loggedInUser);
       }
-      return _userFromFirebaseUser(user, name: name, email: email);
+      return loggedInUser;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'weak-password') {
         print('The password provided is too weak.');
