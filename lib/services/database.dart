@@ -41,8 +41,8 @@ class Database {
 
   Future addFriend(AppUser currentUser, AppUser newFriend) async {
     try {
-      currentUser.friends?.add(newFriend.uid);
-      newFriend.friends?.add(currentUser.uid);
+      currentUser.friends?.add({newFriend.uid: newFriend.name!});
+      newFriend.friends?.add({currentUser.uid: currentUser.name!});
       final userRef = usersRef.withConverter<AppUser>(
           fromFirestore: ((snapshot, options) =>
               AppUser.fromJson(snapshot.data()!)),

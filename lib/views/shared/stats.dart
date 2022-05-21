@@ -36,14 +36,17 @@ class _StatsState extends State<Stats> {
               ),
               const SizedBox(height: 10),
               const Text(
-                "104",
+                "0",
                 style: TextStyle(
                   fontSize: 40,
                   color: Colors.red,
                 ),
               ),
               const Text("You owe",
-                  style: TextStyle(fontSize: 16, color: Colors.black)),
+                  style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.black,
+                      fontFamily: "DancingScript")),
             ],
           ),
           Column(
@@ -55,7 +58,7 @@ class _StatsState extends State<Stats> {
               ),
               const SizedBox(height: 10),
               const Text(
-                "104",
+                "0",
                 style: TextStyle(
                   fontSize: 40,
                   color: Colors.green,

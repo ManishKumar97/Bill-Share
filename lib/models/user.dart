@@ -7,7 +7,7 @@ class AppUser {
   final String? name;
   final String? email;
   final String uid;
-  final List<String>? friends;
+  final List<Map<String, String>>? friends;
   AppUser({this.name, this.email, required this.uid, this.friends});
 
   factory AppUser.fromJson(Map<String, dynamic> json) =>

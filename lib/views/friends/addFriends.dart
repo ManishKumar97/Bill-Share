@@ -133,11 +133,20 @@ class SearchTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: 0.0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      margin: const EdgeInsets.fromLTRB(4.0, 10.0, 8.0, 6.0),
       child: ListTile(
-        title: Text(user!.name!),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+        title: Text(
+          user!.name!,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         subtitle: Text(user!.email!),
         trailing: const Icon(
           Icons.add,
+          color: kPrimaryColor,
         ),
         onTap: () async {
           bool result = await _db.addFriend(loggedInUser!, user!);

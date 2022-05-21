@@ -69,10 +69,6 @@ class _FriendsState extends State<Friends> {
                   .snapshots(),
               builder: (BuildContext context,
                   AsyncSnapshot<QuerySnapshot<Group>> snapshot) {
-                // if (snapshot.connectionState == ConnectionState.waiting) {
-                //   return const Loading();
-                // } else if (snapshot.connectionState == ConnectionState.done ||
-                //     snapshot.connectionState == ConnectionState.active) {
                 if (snapshot.hasData) {
                   final int friendsCount = snapshot.data!.docs.length;
 
@@ -85,7 +81,6 @@ class _FriendsState extends State<Friends> {
                       });
                 }
 
-                // return Text('State: ${snapshot.connectionState}');
                 return const Loading();
               },
             ),
@@ -120,8 +115,21 @@ class FriendTile extends StatelessWidget {
         ? group.members![0]
         : group.members![1];
     return Card(
+      elevation: 0.0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      margin: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
       child: ListTile(
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+        leading: const Icon(
+          Icons.person,
+          color: kPrimaryColor,
+        ),
         title: Text(name!),
+        trailing: const Icon(
+          Icons.keyboard_arrow_right,
+          color: kPrimaryColor,
+        ),
         onTap: () {},
       ),
     );

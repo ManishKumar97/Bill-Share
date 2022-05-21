@@ -43,7 +43,14 @@ class _SettingsState extends State<Settings> {
             const SizedBox(
               height: 20,
             ),
-            Text("Welcome ${widget.user.name!}"),
+            Text(
+              "Welcome ${widget.user.name!}",
+              style: const TextStyle(
+                  fontFamily: "DancingScript",
+                  color: kPrimaryColor,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold),
+            ),
             ProfileMenu(
               text: "My Account",
               icon: const Icon(Icons.account_circle),
