@@ -2,6 +2,7 @@ import 'package:billshare/constants.dart';
 import 'package:billshare/models/group.dart';
 import 'package:billshare/models/user.dart';
 import 'package:billshare/services/database.dart';
+import 'package:billshare/views/bills/bills.dart';
 import 'package:billshare/views/friends/addFriends.dart';
 import 'package:billshare/views/shared/loading.dart';
 import 'package:billshare/views/shared/stats.dart';
@@ -130,7 +131,12 @@ class FriendTile extends StatelessWidget {
           Icons.keyboard_arrow_right,
           color: kPrimaryColor,
         ),
-        onTap: () {},
+        onTap: () {
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => Bills(currentuser: currentUser)));
+        },
       ),
     );
   }

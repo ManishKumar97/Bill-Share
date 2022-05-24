@@ -38,7 +38,7 @@ class _AddFriendsState extends State<AddFriends> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          "Create Groups",
+          "Add Friend",
           style: TextStyle(fontFamily: "DancingScript", color: kPrimaryColor),
         ),
         backgroundColor: Colors.white,
