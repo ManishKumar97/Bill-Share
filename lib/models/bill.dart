@@ -9,7 +9,7 @@ class Bill {
   final String billId;
   final DateTime createdDate;
   final DateTime dueDate;
-  final String createdUser;
+  final String createdUserID;
   final String groupId;
   final String? description;
   final String status;
@@ -20,7 +20,7 @@ class Bill {
       required this.billId,
       required this.createdDate,
       required this.dueDate,
-      required this.createdUser,
+      required this.createdUserID,
       required this.groupId,
       this.description,
       required this.status});

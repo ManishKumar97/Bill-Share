@@ -1,5 +1,5 @@
 import 'package:billshare/services/auth_service.dart';
-import 'package:billshare/views/authentication/components/rounded_button.dart';
+import 'package:billshare/views/shared/rounded_button.dart';
 import "package:billshare/constants.dart";
 import 'package:billshare/views/shared/loading.dart';
 import 'package:flutter/material.dart';
@@ -173,6 +173,7 @@ class _SignUpState extends State<SignUp> {
                     ),
                     RoundedButton(
                         text: "Register",
+                        widthFactor: 0.8,
                         press: () async {
                           if (_formKey.currentState!.validate()) {
                             setState(() => loading = true);

@@ -1,3 +1,4 @@
+import 'package:billshare/constants.dart';
 import 'package:flutter/material.dart';
 
 class Stats extends StatefulWidget {
@@ -24,54 +25,61 @@ class _StatsState extends State<Stats> {
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: <Widget>[
-          Column(
+      child: Container(
+        decoration: const BoxDecoration(
+          color: kPrimaryColor,
+          borderRadius: BorderRadius.all(
+            Radius.circular(19),
+          ),
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: <Widget>[
-              Container(
-                padding: const EdgeInsets.all(6),
-                height: 25,
-                width: 25,
+              Column(
+                children: const <Widget>[
+                  SizedBox(height: 10),
+                  Text("You owe",
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white,
+                      )),
+                  SizedBox(height: 10),
+                  Text(
+                    "0",
+                    style: TextStyle(
+                      fontSize: 40,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 10),
-              const Text(
-                "0",
-                style: TextStyle(
-                  fontSize: 40,
-                  color: Colors.red,
-                ),
+              const VerticalDivider(
+                width: 20,
+                thickness: 1,
+                color: Colors.white,
               ),
-              const Text("You owe",
-                  style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.black,
-                      fontFamily: "DancingScript")),
+              Column(
+                children: const <Widget>[
+                  SizedBox(height: 10),
+                  Text("You get",
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white,
+                      )),
+                  SizedBox(height: 10),
+                  Text(
+                    "0",
+                    style: TextStyle(
+                      fontSize: 40,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              )
             ],
           ),
-          Column(
-            children: <Widget>[
-              Container(
-                padding: const EdgeInsets.all(6),
-                height: 25,
-                width: 25,
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                "0",
-                style: TextStyle(
-                  fontSize: 40,
-                  color: Colors.green,
-                ),
-              ),
-              const Text("You get",
-                  style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.black,
-                      fontFamily: "DancingScript")),
-            ],
-          )
-        ],
+        ),
       ),
     );
   }

@@ -1,4 +1,3 @@
-import 'package:billshare/models/user.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'group.g.dart';
@@ -17,14 +16,18 @@ class Group {
   final String groupId;
   final groupType type;
   final String name;
+  final Map<String, String> members;
   final List<String> membersUids;
-  final List<String>? members;
+  // final List<String>? members;
+  final DateTime? createdDate;
   Group({
     required this.groupId,
     required this.type,
     required this.name,
     required this.membersUids,
-    this.members,
+    // this.members,
+    required this.members,
+    this.createdDate,
   });
 
   factory Group.fromJson(Map<String, dynamic> json) => _$GroupFromJson(json);

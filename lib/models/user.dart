@@ -8,7 +8,13 @@ class AppUser {
   final String? email;
   final String uid;
   final List<Map<String, String>>? friends;
-  AppUser({this.name, this.email, required this.uid, this.friends});
+  final DateTime? createdDate;
+  AppUser(
+      {this.name,
+      this.email,
+      required this.uid,
+      this.friends,
+      this.createdDate});
 
   factory AppUser.fromJson(Map<String, dynamic> json) =>
       _$AppUserFromJson(json);

@@ -1,3 +1,4 @@
+import 'package:billshare/models/group.dart';
 import "package:flutter/material.dart";
 import 'package:billshare/models/user.dart';
 import 'package:billshare/constants.dart';
@@ -8,8 +9,10 @@ import 'package:billshare/models/bill.dart';
 import 'package:billshare/views/bills/addBill.dart';
 
 class Bills extends StatefulWidget {
-  final AppUser currentuser;
-  const Bills({Key? key, required this.currentuser}) : super(key: key);
+  final AppUser currentUser;
+  final Group group;
+  const Bills({Key? key, required this.currentUser, required this.group})
+      : super(key: key);
 
   @override
   State<Bills> createState() => _BillState();
@@ -33,38 +36,6 @@ class _BillState extends State<Bills> {
           color: kPrimaryColor,
         ),
       ),
-      body: Column(
-          // children: [
-          //   Expanded(
-          //     child: StreamBuilder<QuerySnapshot<Bill>>(
-          //       stream: _db.groupsRef
-          //           .where('type', isEqualTo: 1)
-          //           .where('membersUids', arrayContains: widget.currentuser.uid)
-          //           .withConverter<Group>(
-          //               fromFirestore: ((snapshot, options) =>
-          //                   Group.fromJson(snapshot.data()!)),
-          //               toFirestore: (group, _) => group.toJson())
-          //           .snapshots(),
-          //       builder: (BuildContext context,
-          //           AsyncSnapshot<QuerySnapshot<Group>> snapshot) {
-          //         if (snapshot.hasData) {
-          //           final int friendsCount = snapshot.data!.docs.length;
-
-          //           return ListView.builder(
-          //               itemCount: friendsCount,
-          //               itemBuilder: (context, index) {
-          //                 Group grp = snapshot.data!.docs[index].data();
-          //                 return BillTile(
-          //                     group: grp, currentUser: widget.currentuser);
-          //               });
-          //         }
-
-          //         return const Loading();
-          //       },
-          //     ),
-          //   ),
-          // ],
-          ),
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.add),
         backgroundColor: kPrimaryColor,
@@ -72,8 +43,10 @@ class _BillState extends State<Bills> {
           Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (context) =>
-                      AddBill(loggedInUser: widget.currentuser)));
+                  builder: (context) => AddBill(
+                        loggedInUser: widget.currentUser,
+                        group: widget.group,
+                      )));
         },
       ),
     );

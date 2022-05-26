@@ -13,16 +13,19 @@ Group _$GroupFromJson(Map<String, dynamic> json) => Group(
       membersUids: (json['membersUids'] as List<dynamic>)
           .map((e) => e as String)
           .toList(),
-      members:
-          (json['members'] as List<dynamic>?)?.map((e) => e as String).toList(),
+      members: Map<String, String>.from(json['members'] as Map),
+      createdDate: json['createdDate'] == null
+          ? null
+          : DateTime.parse(json['createdDate'] as String),
     );
 
 Map<String, dynamic> _$GroupToJson(Group instance) => <String, dynamic>{
       'groupId': instance.groupId,
       'type': _$groupTypeEnumMap[instance.type],
       'name': instance.name,
-      'membersUids': instance.membersUids,
       'members': instance.members,
+      'membersUids': instance.membersUids,
+      'createdDate': instance.createdDate?.toIso8601String(),
     };
 
 const _$groupTypeEnumMap = {

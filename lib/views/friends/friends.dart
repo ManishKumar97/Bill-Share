@@ -6,8 +6,6 @@ import 'package:billshare/views/bills/bills.dart';
 import 'package:billshare/views/friends/addFriends.dart';
 import 'package:billshare/views/shared/loading.dart';
 import 'package:billshare/views/shared/stats.dart';
-
-// import 'package:billshare/views/shared/stats.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import "package:flutter/material.dart";
 
@@ -21,24 +19,6 @@ class Friends extends StatefulWidget {
 
 class _FriendsState extends State<Friends> {
   final Database _db = Database();
-  // Future fetchData() async {
-  //   QuerySnapshot<Group> q = await _db.groupsRef
-  //       .where('type', isEqualTo: 1)
-  //       .withConverter<Group>(
-  //           fromFirestore: ((snapshot, options) =>
-  //               Group.fromJson(snapshot.data()!)),
-  //           toFirestore: (group, _) => group.toJson())
-  //       .get();
-
-  //   print(q.docs[0].data());
-  // }
-
-  // @override
-  // void initState() {
-  //   // TODO: implement initState
-  //   fetchData();
-  //   super.initState();
-  // }
 
   @override
   Widget build(BuildContext context) {
@@ -112,9 +92,9 @@ class FriendTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    name = (group.members![0] != currentUser.name)
-        ? group.members![0]
-        : group.members![1];
+    group.members.forEach((uid, username) {
+      if (uid != currentUser.uid) name = username;
+    });
     return Card(
       elevation: 0.0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
@@ -135,7 +115,8 @@ class FriendTile extends StatelessWidget {
           Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (context) => Bills(currentuser: currentUser)));
+                  builder: (context) =>
+                      Bills(currentUser: currentUser, group: group)));
         },
       ),
     );

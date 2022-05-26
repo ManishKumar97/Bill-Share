@@ -13,6 +13,9 @@ AppUser _$AppUserFromJson(Map<String, dynamic> json) => AppUser(
       friends: (json['friends'] as List<dynamic>?)
           ?.map((e) => Map<String, String>.from(e as Map))
           .toList(),
+      createdDate: json['createdDate'] == null
+          ? null
+          : DateTime.parse(json['createdDate'] as String),
     );
 
 Map<String, dynamic> _$AppUserToJson(AppUser instance) => <String, dynamic>{
@@ -20,4 +23,5 @@ Map<String, dynamic> _$AppUserToJson(AppUser instance) => <String, dynamic>{
       'email': instance.email,
       'uid': instance.uid,
       'friends': instance.friends,
+      'createdDate': instance.createdDate?.toIso8601String(),
     };

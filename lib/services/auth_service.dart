@@ -46,8 +46,13 @@ class AuthService {
       User? user = result.user;
       AppUser? loggedInUser;
       if (user != null) {
-        loggedInUser =
-            AppUser(uid: user.uid, name: name, email: email, friends: []);
+        loggedInUser = AppUser(
+          uid: user.uid,
+          name: name,
+          email: email,
+          friends: [],
+          createdDate: DateTime.now(),
+        );
         db.registerNewUser(loggedInUser);
       }
       return loggedInUser;

@@ -52,12 +52,19 @@ class Database {
       await userRef.doc(newFriend.uid).set(newFriend);
 
       String gid = groupsRef.doc().id;
+      Map<String, String> mems = {
+        currentUser.uid: currentUser.name!,
+        newFriend.uid: newFriend.name!
+      };
       Group grp = Group(
-          groupId: gid,
-          type: groupType.individual,
-          name: "Individual",
-          membersUids: [currentUser.uid, newFriend.uid],
-          members: [currentUser.name!, newFriend.name!]);
+        groupId: gid,
+        type: groupType.individual,
+        name: "Individual",
+        membersUids: [currentUser.uid, newFriend.uid],
+        // members: [currentUser.name!, newFriend.name!],
+        members: mems,
+        createdDate: DateTime.now(),
+      );
 
       final docRef = groupsRef.doc(gid).withConverter<Group>(
           fromFirestore: ((snapshot, options) =>
