@@ -42,6 +42,7 @@ class _CreateGroupsState extends State<CreateGroups> {
     final Database _db = Database();
     final Map<String, String> members;
     final List<String> membersUids;
+    String groupName;
 
     return Scaffold(
       appBar: AppBar(
@@ -100,6 +101,41 @@ class _CreateGroupsState extends State<CreateGroups> {
       ),
       body: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: SizedBox(
+              // height: 50,
+              // width: 300,
+              child: TextField(
+                onChanged: (value) {
+                  setState(() => groupName = value);
+                },
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: const Color.fromARGB(16, 224, 210, 210),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                  hintText: "Enter group name",
+                  hintStyle: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.normal,
+                    color: Color.fromARGB(143, 0, 0, 0),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(
+            height: 20,
+            width: 20,
+          ),
+          const Text(
+            "Select group members from the below",
+            textAlign: TextAlign.left,
+            style: TextStyle(fontSize: 16, color: kPrimaryColor),
+          ),
           Expanded(
             child: StreamBuilder<QuerySnapshot<Group>>(
               stream: _db.groupsRef
@@ -198,7 +234,10 @@ class _ListBuilderState extends State<ListBuilder> {
               Icons.person,
               color: kPrimaryColor,
             ),
-            title: Text(name!),
+            title: Text(
+              name!,
+              style: const TextStyle(fontSize: 16, color: kPrimaryColor),
+            ),
             onTap: () => _toggle(index),
             onLongPress: () {
               if (!widget.isSelectionMode) {
