@@ -36,6 +36,45 @@ class _BillState extends State<Bills> {
           color: kPrimaryColor,
         ),
       ),
+      body: Column(
+        children: [
+          Expanded(
+            child: StreamBuilder<QuerySnapshot<Bill>>(
+              stream: _db.billsRef
+                  .where('groupId', isEqualTo: widget.group.groupId)
+                  .orderBy('createdDate', descending: true)
+                  .withConverter<Bill>(
+                      fromFirestore: ((snapshot, options) =>
+                          Bill.fromJson(snapshot.data()!)),
+                      toFirestore: (bill, _) => bill.toJson())
+                  .snapshots(),
+              builder: (BuildContext context,
+                  AsyncSnapshot<QuerySnapshot<Bill>> snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Loading();
+                } else if (snapshot.connectionState == ConnectionState.active ||
+                    snapshot.connectionState == ConnectionState.done) {
+                  if (snapshot.hasError) {
+                    return const Text("error");
+                  }
+                  if (snapshot.hasData) {
+                    final int billsCount = snapshot.data!.docs.length;
+
+                    return ListView.builder(
+                        itemCount: billsCount,
+                        itemBuilder: (context, index) {
+                          Bill bill = snapshot.data!.docs[index].data();
+                          return BillTile(bill: bill, group: widget.group);
+                        });
+                  }
+                }
+
+                return const Loading();
+              },
+            ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.add),
         backgroundColor: kPrimaryColor,
@@ -55,14 +94,13 @@ class _BillState extends State<Bills> {
 
 class BillTile extends StatelessWidget {
   final Bill bill;
-  final AppUser currentUser;
+  final Group group;
   String? title;
-  BillTile({required this.bill, required this.currentUser, Key? key})
+  BillTile({required this.bill, required this.group, Key? key})
       : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    title = bill.title;
     return Card(
       elevation: 0.0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
@@ -71,14 +109,11 @@ class BillTile extends StatelessWidget {
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
         leading: const Icon(
-          Icons.document_scanner,
+          Icons.receipt,
           color: kPrimaryColor,
         ),
-        title: Text(title!),
-        trailing: const Icon(
-          Icons.keyboard_arrow_right,
-          color: kPrimaryColor,
-        ),
+        title: Text(bill.title),
+        trailing: Text("\$" + "${bill.amount}"),
         onTap: () {},
       ),
     );

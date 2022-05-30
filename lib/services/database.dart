@@ -1,4 +1,6 @@
+import 'package:billshare/models/bill.dart';
 import 'package:billshare/models/group.dart';
+import 'package:billshare/models/indebt.dart';
 import 'package:billshare/models/user.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -10,6 +12,11 @@ class Database {
 
   final CollectionReference groupsRef =
       FirebaseFirestore.instance.collection('groups');
+
+  final CollectionReference billsRef =
+      FirebaseFirestore.instance.collection('bills');
+  final CollectionReference indebtRef =
+      FirebaseFirestore.instance.collection('indebts');
 
   Future registerNewUser(AppUser loggedInUser) async {
     try {
@@ -74,6 +81,65 @@ class Database {
       return true;
     } catch (e) {
       print("cannot add friend");
+    }
+  }
+
+  Future<bool> addIndebt(String owedTo, String owedBy, double amount,
+      DateTime createdDate, String billId, DateTime dueDate) async {
+    String indebtId = indebtRef.doc().id;
+    Indebt indebt = Indebt(
+        indebtId: indebtId,
+        owedTo: owedTo,
+        owedBy: owedBy,
+        amount: amount,
+        billId: billId,
+        createdDate: createdDate,
+        dueDate: dueDate,
+        status: indebtstatus.pending);
+    final docRef = indebtRef.doc(indebtId).withConverter<Indebt>(
+        fromFirestore: ((snapshot, options) =>
+            Indebt.fromJson(snapshot.data()!)),
+        toFirestore: (indebt, _) => indebt.toJson());
+    await docRef.set(indebt);
+    return true;
+  }
+
+  Future addBill(
+      String title,
+      double amount,
+      DateTime dueDate,
+      String paidBy,
+      String createdUserId,
+      String groupId,
+      String comments,
+      Map<String, double> values) async {
+    try {
+      String billId = billsRef.doc().id;
+      DateTime now = DateTime.now();
+      Bill bill = Bill(
+          amount: amount,
+          title: title,
+          billId: billId,
+          createdDate: now,
+          dueDate: dueDate,
+          paidBy: paidBy,
+          createdUserID: createdUserId,
+          groupId: groupId,
+          comments: comments,
+          status: billstatus.pending);
+      final docRef = billsRef.doc(billId).withConverter<Bill>(
+          fromFirestore: ((snapshot, options) =>
+              Bill.fromJson(snapshot.data()!)),
+          toFirestore: (bill, _) => bill.toJson());
+      await docRef.set(bill);
+      values.forEach((key, value) async {
+        if (key != paidBy && value > 0.0) {
+          await addIndebt(paidBy, key, value, now, billId, dueDate);
+        }
+      });
+      return true;
+    } catch (e) {
+      print("cannot add bill");
     }
   }
 }

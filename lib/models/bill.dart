@@ -2,6 +2,15 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'bill.g.dart';
 
+const int pending = 1;
+const int settled = 2;
+enum billstatus {
+  @JsonValue(1)
+  pending,
+  @JsonValue(2)
+  settled,
+}
+
 @JsonSerializable()
 class Bill {
   final String title;
@@ -9,10 +18,11 @@ class Bill {
   final String billId;
   final DateTime createdDate;
   final DateTime dueDate;
+  final String paidBy;
   final String createdUserID;
   final String groupId;
-  final String? description;
-  final String status;
+  final String? comments;
+  final billstatus status;
 
   Bill(
       {required this.title,
@@ -20,9 +30,10 @@ class Bill {
       required this.billId,
       required this.createdDate,
       required this.dueDate,
+      required this.paidBy,
       required this.createdUserID,
       required this.groupId,
-      this.description,
+      this.comments,
       required this.status});
 
   factory Bill.fromJson(Map<String, dynamic> json) => _$BillFromJson(json);

@@ -1,4 +1,7 @@
+import 'dart:math';
+
 import 'package:billshare/constants.dart';
+// import 'package:billshare/models/bill.dart';
 import 'package:billshare/models/group.dart';
 import 'package:billshare/models/user.dart';
 import 'package:billshare/services/database.dart';
@@ -26,41 +29,124 @@ class _AddBillState extends State<AddBill> {
   Map<String, double> equalShares = {};
   Map<String, double> percentageShares = {};
   Map<String, double> numberShares = {};
-  List<bool> _isEqualShareChecked = [];
+  Map<String, bool> _isEqualShareChecked = {};
   int friendsCount = 0;
   String comments = "";
   bool isLoading = false;
-  AppUser? searchUser;
+  String error = "";
 
   final _formKey = GlobalKey<FormState>();
   final Database _db = Database();
 
   @override
   void initState() {
-    // TODO: implement initState
     friendsCount = widget.group.membersUids.length;
-    _isEqualShareChecked = List<bool>.filled(friendsCount, false);
-    paidBy = widget.loggedInUser.name!;
+
+    paidBy = widget.loggedInUser.uid;
     widget.group.members.forEach((key, value) {
       double v = 0.0;
       equalShares[key] = v;
       percentageShares[key] = v;
       numberShares[key] = v;
+      _isEqualShareChecked[key] = false;
     });
     super.initState();
   }
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
-        context: context,
-        initialDate: dueDate,
-        firstDate: DateTime.now().add(const Duration(days: 1)),
-        lastDate: DateTime(2101));
+      context: context,
+      initialDate: dueDate,
+      firstDate: DateTime.now().add(const Duration(days: 1)),
+      lastDate: DateTime(2101),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: kPrimaryColor, // header background color
+              onPrimary: Colors.white, // header text color
+              onSurface: Colors.black, // body text color
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                primary: kPrimaryColor, // button text color
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
 
     if (picked != null && picked != dueDate) {
       setState(() {
         dueDate = picked;
       });
+    }
+  }
+
+  double roundDouble(double value, int places) {
+    double mod = pow(10.0, places) as double;
+    return ((value * mod).round().toDouble() / mod);
+  }
+
+  Future<void> handleSubmit(GlobalKey<FormState> key) async {
+    setState(() {
+      error = "";
+    });
+    if (key.currentState!.validate()) {
+      if (splitTypes[0]) {
+        int totalmembersCount = 0;
+        _isEqualShareChecked.forEach((key, value) {
+          if (value) ++totalmembersCount;
+        });
+        if (totalmembersCount == 0) {
+          setState(() {
+            error = " No users are selected to split";
+          });
+          return;
+        }
+        _isEqualShareChecked.forEach((key, value) {
+          if (value) {
+            equalShares[key] = roundDouble(amount / totalmembersCount, 2);
+          }
+        });
+      } else if (splitTypes[1]) {
+        double total = 0.0;
+        numberShares.forEach((key, value) {
+          total += value;
+        });
+        if (total != 100.0) {
+          setState(() {
+            error = "Percentage split do not add up to 100%";
+          });
+          return;
+        }
+        numberShares.forEach((key, value) {
+          value = roundDouble((amount * value) / 100, 2);
+        });
+      } else if (splitTypes[2]) {
+        double total = 0.0;
+        numberShares.forEach((key, value) {
+          total += value;
+        });
+        if (total != amount) {
+          setState(() {
+            error = "Numbers split do not add up to bill amount";
+          });
+          return;
+        }
+      }
+      Map<String, double> values = {};
+      if (splitTypes[0]) {
+        values = equalShares;
+      } else if (splitTypes[1]) {
+        values = percentageShares;
+      } else if (splitTypes[2]) {
+        values = numberShares;
+      }
+      await _db.addBill(title, amount, dueDate, paidBy, widget.loggedInUser.uid,
+          widget.group.groupId, comments, values);
     }
   }
 
@@ -79,446 +165,456 @@ class _AddBillState extends State<AddBill> {
         ),
         elevation: 0.0,
       ),
-      body: GestureDetector(
-        onTap: () {
-          FocusScopeNode currentFocus = FocusScope.of(context);
-
-          if (!currentFocus.hasPrimaryFocus) {
-            currentFocus.unfocus();
-          }
-        },
-        child: Form(
-          key: _formKey,
-          child: SizedBox(
-            height: size.height,
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  ListView(
-                    shrinkWrap: true,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.all(10.0),
-                        child: Text(
-                          "Enter Bill details below",
-                          style: TextStyle(fontSize: 16, color: kPrimaryColor),
+      body: SingleChildScrollView(
+        physics: const ScrollPhysics(),
+        child: Column(
+          children: [
+            GestureDetector(
+              onTap: () {
+                FocusManager.instance.primaryFocus?.unfocus();
+              },
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.all(10.0),
+                      child: Text(
+                        "Enter Bill details below",
+                        style: TextStyle(fontSize: 16, color: kPrimaryColor),
+                      ),
+                    ),
+                    Container(
+                      margin: const EdgeInsets.symmetric(vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 5),
+                      width: size.width,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(19),
+                      ),
+                      child: TextFormField(
+                        onChanged: (value) {
+                          setState(() => title = value);
+                        },
+                        validator: (val) => (val != null && val.isEmpty)
+                            ? 'Please enter an title'
+                            : null,
+                        cursorColor: kPrimaryColor,
+                        decoration: const InputDecoration(
+                          hintText: "Title*",
+                          labelText: "Title",
+                          labelStyle: TextStyle(color: kPrimaryColor),
+                          // helperText: "Enter bill title",
+                          helperStyle: TextStyle(fontSize: 14),
+                          border: InputBorder.none,
                         ),
                       ),
-                      Container(
-                        margin: const EdgeInsets.symmetric(vertical: 10),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 5),
-                        width: size.width,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(19),
-                        ),
-                        child: TextFormField(
-                          onChanged: (value) {
-                            setState(() => title = value);
-                          },
-                          validator: (val) => (val != null && val.isEmpty)
-                              ? 'Please enter an title'
-                              : null,
-                          cursorColor: kPrimaryColor,
-                          decoration: const InputDecoration(
-                            hintText: "Title*",
-                            helperText: "Enter bill title",
-                            helperStyle: TextStyle(fontSize: 14),
-                            border: InputBorder.none,
-                          ),
-                        ),
+                    ),
+                    Container(
+                      margin: const EdgeInsets.symmetric(vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 5),
+                      width: size.width,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(19),
                       ),
-                      Container(
-                        margin: const EdgeInsets.symmetric(vertical: 10),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 5),
-                        width: size.width,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(19),
+                      child: TextFormField(
+                        onChanged: (value) {
+                          if (double.tryParse(value) != null) {
+                            setState(() => amount = double.parse(value));
+                          }
+                        },
+                        validator: (val) => ((val != null && val.isEmpty) ||
+                                (double.tryParse(val!) == null ||
+                                    double.parse(val) == 0.0))
+                            ? 'Please enter a valid amount'
+                            : null,
+                        cursorColor: kPrimaryColor,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
                         ),
-                        child: TextFormField(
-                          onChanged: (value) {
-                            if (double.tryParse(value) != null) {
-                              setState(() => amount = double.parse(value));
-                            }
-                          },
-                          validator: (val) => (val != null &&
-                                  double.tryParse(val) != null &&
-                                  double.parse(val) > 0.0)
-                              ? 'Please enter a valid amount'
-                              : null,
-                          cursorColor: kPrimaryColor,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                                RegExp(r'^(\d+)?\.?\d{0,2}')),
-                          ],
-                          decoration: const InputDecoration(
-                            hintText: "Amount* ",
-                            helperText: "Enter bill amount here ",
-                            helperStyle: TextStyle(fontSize: 14),
-                            border: InputBorder.none,
-                          ),
-                        ),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          Container(
-                            margin: const EdgeInsets.symmetric(vertical: 10),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 5),
-                            width: size.width / 2,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(19),
-                            ),
-                            child: DropdownButtonFormField<String>(
-                              decoration: const InputDecoration(
-                                hintText: "Paid By",
-                                helperText: "Paid By",
-                                border: InputBorder.none,
-                                // enabledBorder: OutlineInputBorder(
-                                //     borderRadius: BorderRadius.circular(10),
-                                //     borderSide: const BorderSide(color: kPrimaryColor)),
-                              ),
-                              items: widget.group.members
-                                  .map((uid, name) {
-                                    return MapEntry(
-                                        name,
-                                        DropdownMenuItem<String>(
-                                          value: name,
-                                          child: Text(name),
-                                        ));
-                                  })
-                                  .values
-                                  .toList(),
-                              value: paidBy,
-                              onChanged: (String? newvalue) {
-                                if (newvalue != null) {
-                                  setState(() {
-                                    paidBy = newvalue;
-                                  });
-                                }
-                              },
-                            ),
-                          ),
-                          Container(
-                            margin: const EdgeInsets.symmetric(vertical: 10),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 5),
-                            width: size.width / 2,
-                            decoration: BoxDecoration(
-                              color: kPrimaryColor,
-                              borderRadius: BorderRadius.circular(19),
-                            ),
-                            child: Column(
-                              children: [
-                                ElevatedButton.icon(
-                                  icon: const Icon(
-                                    Icons.date_range,
-                                    color: Colors.white,
-                                    size: 24.0,
-                                  ),
-                                  label:
-                                      Text(DateFormat.yMMMd().format(dueDate)),
-                                  onPressed: () {
-                                    _selectDate(context);
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    primary: kPrimaryColor,
-                                    elevation: 0.0,
-                                  ),
-                                ),
-                                const Text(
-                                  "Due date",
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                              ],
-                            ),
-                          ),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'^(\d+)?\.?\d{0,2}')),
                         ],
+                        decoration: const InputDecoration(
+                          hintText: "Amount* ",
+                          labelText: "Amount",
+                          labelStyle: TextStyle(color: kPrimaryColor),
+                          helperStyle: TextStyle(fontSize: 14),
+                          border: InputBorder.none,
+                          icon: Icon(Icons.attach_money, color: kPrimaryColor),
+                        ),
                       ),
-                      Container(
-                        margin: const EdgeInsets.symmetric(vertical: 10),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 5),
-                        child: Center(
-                          child: ToggleButtons(
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.symmetric(vertical: 10),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 5),
+                          width: size.width / 2,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(19),
+                          ),
+                          child: DropdownButtonFormField<String>(
+                            decoration: const InputDecoration(
+                              hintText: "Paid By",
+                              labelText: "Paid By",
+                              labelStyle: TextStyle(color: kPrimaryColor),
+                              // helperText: "Paid By",
+                              border: InputBorder.none,
+                            ),
+                            items: widget.group.members
+                                .map((uid, name) {
+                                  return MapEntry(
+                                      uid,
+                                      DropdownMenuItem<String>(
+                                        value: uid,
+                                        child: Text(name),
+                                      ));
+                                })
+                                .values
+                                .toList(),
+                            value: paidBy,
+                            onChanged: (String? newvalue) {
+                              if (newvalue != null) {
+                                setState(() {
+                                  paidBy = newvalue;
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                        Container(
+                          margin: const EdgeInsets.symmetric(vertical: 10),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 5),
+                          width: size.width / 2,
+                          decoration: BoxDecoration(
+                            color: kPrimaryColor,
+                            borderRadius: BorderRadius.circular(19),
+                          ),
+                          child: Column(
                             children: [
-                              Padding(
-                                padding: const EdgeInsets.all(10.0),
-                                child: Row(
-                                  children: const [
-                                    Text(
-                                      'Equally',
-                                    ),
-                                    Icon(
-                                      Icons.balance,
-                                    )
-                                  ],
+                              ElevatedButton.icon(
+                                icon: const Icon(
+                                  Icons.date_range,
+                                  color: Colors.white,
+                                  size: 24.0,
+                                ),
+                                label: Text(DateFormat.yMMMd().format(dueDate)),
+                                onPressed: () {
+                                  _selectDate(context);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  primary: kPrimaryColor,
+                                  elevation: 0.0,
                                 ),
                               ),
-                              Padding(
-                                padding: const EdgeInsets.all(10.0),
-                                child: Row(
-                                  children: const [
-                                    Text(
-                                      '%',
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(10.0),
-                                child: Row(
-                                  children: const [
-                                    Text(
-                                      'Number',
-                                    ),
-                                    Icon(
-                                      Icons.pin,
-                                    )
-                                  ],
-                                ),
+                              const Text(
+                                "Due date",
+                                style: TextStyle(color: Colors.white),
                               ),
                             ],
-                            color: kPrimaryColor,
-                            selectedColor: Colors.white,
-                            fillColor: kPrimaryColor,
-                            isSelected: splitTypes,
-                            onPressed: (int index) {
-                              setState(() {
-                                for (int i = 0; i < splitTypes.length; i++) {
-                                  splitTypes[i] = i == index;
-                                }
-                              });
-                            },
-                            borderRadius: BorderRadius.circular(19.0),
                           ),
                         ),
-                      ),
-                      if (splitTypes[0])
-                        ListView.builder(
-                            shrinkWrap: true,
-                            itemCount: widget.group.members.length,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemBuilder: (BuildContext context, int index) {
-                              String key =
-                                  widget.group.members.keys.elementAt(index);
-                              String val = widget.group.members[key]!;
-                              return Container(
-                                margin:
-                                    const EdgeInsets.symmetric(vertical: 10),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 20, vertical: 5),
-                                width: size.width / 2,
-                                decoration: BoxDecoration(
-                                  // color: Colors.white,
-                                  borderRadius: BorderRadius.circular(19),
-                                ),
-                                child: CheckboxListTile(
-                                  title: Text(val),
-                                  value: _isEqualShareChecked[index],
-                                  onChanged: (val) {
-                                    setState(() {
-                                      _isEqualShareChecked[index] = val!;
-                                    });
-                                  },
-                                  checkColor: Colors.white,
-                                  activeColor: kPrimaryColor,
-                                ),
-                              );
-                            }),
-                      if (splitTypes[1])
-                        ListView.builder(
-                            shrinkWrap: true,
-                            itemCount: widget.group.members.length,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemBuilder: (BuildContext context, int index) {
-                              String key =
-                                  widget.group.members.keys.elementAt(index);
-                              String val = widget.group.members[key]!;
-                              return Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    Container(
-                                        margin: const EdgeInsets.symmetric(
-                                            vertical: 10),
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 20, vertical: 5),
-                                        width: size.width / 2,
-                                        decoration: BoxDecoration(
-                                          // color: Colors.white,
-                                          borderRadius:
-                                              BorderRadius.circular(19),
-                                        ),
-                                        child: Text(
-                                          val,
-                                          style: const TextStyle(fontSize: 17),
-                                        )),
-                                    Container(
-                                      margin: const EdgeInsets.symmetric(
-                                          vertical: 10),
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 20, vertical: 5),
-                                      width: size.width / 3,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(19),
-                                      ),
-                                      child: TextFormField(
-                                        textAlign: TextAlign.center,
-                                        onChanged: (value) {
-                                          if (double.tryParse(value) != null) {
-                                            if (double.parse(value) > 100) {
-                                              value = "100.00";
-                                            } else {
-                                              setState(() =>
-                                                  percentageShares[key] =
-                                                      double.parse(value));
-                                            }
-                                          }
-                                        },
-                                        validator: (val) => (val != null &&
-                                                double.tryParse(val) != null &&
-                                                double.parse(val) > 0.0)
-                                            ? 'Please enter a valid amount'
-                                            : null,
-                                        cursorColor: kPrimaryColor,
-                                        keyboardType: const TextInputType
-                                            .numberWithOptions(
-                                          decimal: true,
-                                        ),
-                                        inputFormatters: [
-                                          FilteringTextInputFormatter.allow(
-                                              RegExp(r'^(\d+)?\.?\d{0,2}')),
-                                          NumericalRangeFormatter(
-                                              min: 0.0, max: 100.0),
-                                        ],
-                                        decoration: const InputDecoration(
-                                          hintText: "%",
-                                          helperStyle: TextStyle(fontSize: 14),
-                                          border: InputBorder.none,
-                                        ),
-                                      ),
-                                    ),
-                                  ]);
-                            }),
-                      if (splitTypes[2])
-                        ListView.builder(
-                            shrinkWrap: true,
-                            itemCount: widget.group.members.length,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemBuilder: (BuildContext context, int index) {
-                              String key =
-                                  widget.group.members.keys.elementAt(index);
-                              String val = widget.group.members[key]!;
-                              return Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    Container(
-                                        margin: const EdgeInsets.symmetric(
-                                            vertical: 10),
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 20, vertical: 5),
-                                        width: size.width / 2,
-                                        decoration: BoxDecoration(
-                                          // color: Colors.white,
-                                          borderRadius:
-                                              BorderRadius.circular(19),
-                                        ),
-                                        child: Text(
-                                          val,
-                                          style: const TextStyle(fontSize: 17),
-                                        )),
-                                    Container(
-                                      margin: const EdgeInsets.symmetric(
-                                          vertical: 10),
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 20, vertical: 5),
-                                      width: size.width / 3,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(19),
-                                      ),
-                                      child: TextFormField(
-                                        textAlign: TextAlign.center,
-                                        onChanged: (value) {
-                                          if (double.tryParse(value) != null) {
-                                            if (double.parse(value) > amount) {
-                                              value = "$amount";
-                                            } else {
-                                              setState(() => numberShares[key] =
-                                                  double.parse(value));
-                                            }
-                                          }
-                                        },
-                                        validator: (val) => (val != null &&
-                                                double.tryParse(val) != null &&
-                                                double.parse(val) > 0.0)
-                                            ? 'Please enter a valid amount'
-                                            : null,
-                                        cursorColor: kPrimaryColor,
-                                        keyboardType: const TextInputType
-                                            .numberWithOptions(
-                                          decimal: true,
-                                        ),
-                                        inputFormatters: [
-                                          FilteringTextInputFormatter.allow(
-                                              RegExp(r'^(\d+)?\.?\d{0,2}')),
-                                          NumericalRangeFormatter(
-                                              min: 0.0, max: amount),
-                                        ],
-                                        decoration: const InputDecoration(
-                                          hintText: "123",
-                                          helperStyle: TextStyle(fontSize: 14),
-                                          border: InputBorder.none,
-                                        ),
-                                      ),
-                                    ),
-                                  ]);
-                            }),
-                      Container(
-                        margin: const EdgeInsets.symmetric(vertical: 10),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 5),
-                        width: size.width,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(19),
-                        ),
-                        child: TextFormField(
-                          onChanged: (value) {
-                            setState(() => comments = value);
+                      ],
+                    ),
+                    Container(
+                      margin: const EdgeInsets.symmetric(vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 5),
+                      child: Center(
+                        child: ToggleButtons(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(10.0),
+                              child: Row(
+                                children: const [
+                                  Text(
+                                    'Equally',
+                                  ),
+                                  Icon(
+                                    Icons.balance,
+                                  )
+                                ],
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(10.0),
+                              child: Row(
+                                children: const [
+                                  Text(
+                                    '%',
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(10.0),
+                              child: Row(
+                                children: const [
+                                  Text(
+                                    'Number',
+                                  ),
+                                  Icon(
+                                    Icons.pin,
+                                  )
+                                ],
+                              ),
+                            ),
+                          ],
+                          color: kPrimaryColor,
+                          selectedColor: Colors.white,
+                          fillColor: kPrimaryColor,
+                          isSelected: splitTypes,
+                          onPressed: (int index) {
+                            setState(() {
+                              for (int i = 0; i < splitTypes.length; i++) {
+                                splitTypes[i] = i == index;
+                              }
+                            });
                           },
-                          cursorColor: kPrimaryColor,
-                          keyboardType: TextInputType.multiline,
-                          maxLines: null,
-                          decoration: const InputDecoration(
-                            hintText: "comments",
-                            helperStyle: TextStyle(fontSize: 14),
-                            border: InputBorder.none,
-                          ),
+                          borderRadius: BorderRadius.circular(19.0),
                         ),
                       ),
-                      RoundedButton(
-                        text: "Done",
-                        press: () {},
-                        widthFactor: 0.6,
+                    ),
+                    if (splitTypes[0])
+                      ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: widget.group.members.length,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemBuilder: (BuildContext context, int index) {
+                            String key =
+                                widget.group.members.keys.elementAt(index);
+                            String val = widget.group.members[key]!;
+                            return Container(
+                              margin: const EdgeInsets.symmetric(vertical: 10),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 20, vertical: 5),
+                              width: size.width / 2,
+                              decoration: BoxDecoration(
+                                // color: Colors.white,
+                                borderRadius: BorderRadius.circular(19),
+                              ),
+                              child: CheckboxListTile(
+                                title: Text(val),
+                                value: _isEqualShareChecked[key],
+                                onChanged: (val) {
+                                  setState(() {
+                                    _isEqualShareChecked[key] = val!;
+                                  });
+                                },
+                                checkColor: Colors.white,
+                                activeColor: kPrimaryColor,
+                              ),
+                            );
+                          }),
+                    if (splitTypes[1])
+                      ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: widget.group.members.length,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemBuilder: (BuildContext context, int index) {
+                            String key =
+                                widget.group.members.keys.elementAt(index);
+                            String val = widget.group.members[key]!;
+                            return Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  Container(
+                                      margin: const EdgeInsets.symmetric(
+                                          vertical: 10),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 20, vertical: 5),
+                                      width: size.width / 2,
+                                      decoration: BoxDecoration(
+                                        // color: Colors.white,
+                                        borderRadius: BorderRadius.circular(19),
+                                      ),
+                                      child: Text(
+                                        val,
+                                        style: const TextStyle(fontSize: 17),
+                                      )),
+                                  Container(
+                                    margin: const EdgeInsets.symmetric(
+                                        vertical: 10),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20, vertical: 5),
+                                    width: size.width / 3,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(19),
+                                    ),
+                                    child: TextFormField(
+                                      textAlign: TextAlign.center,
+                                      onChanged: (value) {
+                                        if (double.tryParse(value) != null) {
+                                          if (double.parse(value) > 100) {
+                                            value = "100.00";
+                                          } else {
+                                            setState(() =>
+                                                percentageShares[key] =
+                                                    double.parse(value));
+                                          }
+                                        }
+                                      },
+                                      validator: (val) => ((val != null &&
+                                                  val.isEmpty) ||
+                                              (double.tryParse(val!) == null ||
+                                                  double.parse(val) == 0.0))
+                                          ? 'Please enter a valid amount'
+                                          : null,
+                                      cursorColor: kPrimaryColor,
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.allow(
+                                            RegExp(r'^(\d+)?\.?\d{0,2}')),
+                                        // NumericalRangeFormatter(
+                                        // min: 0.0, max: 100.0),
+                                      ],
+                                      decoration: const InputDecoration(
+                                        hintText: "%",
+                                        helperStyle: TextStyle(fontSize: 14),
+                                        border: InputBorder.none,
+                                      ),
+                                    ),
+                                  ),
+                                ]);
+                          }),
+                    if (splitTypes[2])
+                      ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: widget.group.members.length,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemBuilder: (BuildContext context, int index) {
+                            String key =
+                                widget.group.members.keys.elementAt(index);
+                            String val = widget.group.members[key]!;
+                            return Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  Container(
+                                      margin: const EdgeInsets.symmetric(
+                                          vertical: 10),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 20, vertical: 5),
+                                      width: size.width / 2,
+                                      decoration: BoxDecoration(
+                                        // color: Colors.white,
+                                        borderRadius: BorderRadius.circular(19),
+                                      ),
+                                      child: Text(
+                                        val,
+                                        style: const TextStyle(fontSize: 17),
+                                      )),
+                                  Container(
+                                    margin: const EdgeInsets.symmetric(
+                                        vertical: 10),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20, vertical: 5),
+                                    width: size.width / 2,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(19),
+                                    ),
+                                    child: TextFormField(
+                                      textAlign: TextAlign.center,
+                                      onChanged: (value) {
+                                        if (double.tryParse(value) != null) {
+                                          if (double.parse(value) > amount) {
+                                            value = "$amount";
+                                          } else {
+                                            setState(() => numberShares[key] =
+                                                double.parse(value));
+                                          }
+                                        }
+                                      },
+                                      validator: (val) => ((val != null &&
+                                                  val.isEmpty) ||
+                                              (double.tryParse(val!) == null ||
+                                                  double.parse(val) == 0.0))
+                                          ? 'Please enter a valid amount'
+                                          : null,
+                                      cursorColor: kPrimaryColor,
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.allow(
+                                            RegExp(r'^(\d+)?\.?\d{0,2}')),
+                                        // NumericalRangeFormatter(
+                                        // min: 0.0, max: amount),
+                                      ],
+                                      decoration: const InputDecoration(
+                                        hintText: "123",
+                                        helperStyle: TextStyle(fontSize: 14),
+                                        border: InputBorder.none,
+                                      ),
+                                    ),
+                                  ),
+                                ]);
+                          }),
+                    Container(
+                      margin: const EdgeInsets.symmetric(vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 5),
+                      width: size.width,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(19),
                       ),
-                    ],
-                  ),
-                ],
+                      child: TextFormField(
+                        onChanged: (value) {
+                          setState(() => comments = value);
+                        },
+                        cursorColor: kPrimaryColor,
+                        keyboardType: TextInputType.multiline,
+                        maxLines: null,
+                        decoration: const InputDecoration(
+                          hintText: "comments",
+                          labelText: "comments",
+                          labelStyle: TextStyle(color: kPrimaryColor),
+                          // helperStyle: TextStyle(fontSize: 14),
+                          border: InputBorder.none,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(5.0),
+                      child: Text(
+                        error,
+                        style: const TextStyle(fontSize: 16, color: Colors.red),
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        RoundedButton(
+                          text: "Done",
+                          press: () async {
+                            await handleSubmit(_formKey);
+                          },
+                          widthFactor: 0.6,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
