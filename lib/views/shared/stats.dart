@@ -2,7 +2,10 @@ import 'package:billshare/constants.dart';
 import 'package:flutter/material.dart';
 
 class Stats extends StatefulWidget {
-  const Stats({Key? key}) : super(key: key);
+  double getAmount = 0.0;
+  double owesAmount = 0.0;
+  Stats({required this.getAmount, required this.owesAmount, Key? key})
+      : super(key: key);
 
   @override
   State<Stats> createState() => _StatsState();
@@ -37,17 +40,17 @@ class _StatsState extends State<Stats> {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: <Widget>[
               Column(
-                children: const <Widget>[
-                  SizedBox(height: 10),
-                  Text("You owe",
+                children: <Widget>[
+                  const SizedBox(height: 10),
+                  const Text("You owe",
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.white,
                       )),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Text(
-                    "0",
-                    style: TextStyle(
+                    "${widget.owesAmount}",
+                    style: const TextStyle(
                       fontSize: 40,
                       color: Colors.white,
                     ),
@@ -60,17 +63,17 @@ class _StatsState extends State<Stats> {
                 color: Colors.white,
               ),
               Column(
-                children: const <Widget>[
-                  SizedBox(height: 10),
-                  Text("You get",
+                children: <Widget>[
+                  const SizedBox(height: 10),
+                  const Text("You get",
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.white,
                       )),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Text(
-                    "0",
-                    style: TextStyle(
+                    "${widget.getAmount}",
+                    style: const TextStyle(
                       fontSize: 40,
                       color: Colors.white,
                     ),

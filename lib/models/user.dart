@@ -7,7 +7,7 @@ class AppUser {
   final String? name;
   final String? email;
   final String uid;
-  final List<Map<String, String>>? friends;
+  final Map<String, String>? friends;
   final DateTime? createdDate;
   AppUser(
       {this.name,

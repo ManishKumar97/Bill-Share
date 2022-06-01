@@ -16,7 +16,11 @@ Bill _$BillFromJson(Map<String, dynamic> json) => Bill(
       createdUserID: json['createdUserID'] as String,
       groupId: json['groupId'] as String,
       comments: json['comments'] as String?,
+      splittype: $enumDecode(_$splitTypeEnumMap, json['splittype']),
       status: $enumDecode(_$billstatusEnumMap, json['status']),
+      memberShares: (json['memberShares'] as Map<String, dynamic>).map(
+        (k, e) => MapEntry(k, (e as num).toDouble()),
+      ),
     );
 
 Map<String, dynamic> _$BillToJson(Bill instance) => <String, dynamic>{
@@ -29,8 +33,16 @@ Map<String, dynamic> _$BillToJson(Bill instance) => <String, dynamic>{
       'createdUserID': instance.createdUserID,
       'groupId': instance.groupId,
       'comments': instance.comments,
+      'splittype': _$splitTypeEnumMap[instance.splittype],
       'status': _$billstatusEnumMap[instance.status],
+      'memberShares': instance.memberShares,
     };
+
+const _$splitTypeEnumMap = {
+  splitType.equally: 0,
+  splitType.percentage: 1,
+  splitType.number: 2,
+};
 
 const _$billstatusEnumMap = {
   billstatus.pending: 1,

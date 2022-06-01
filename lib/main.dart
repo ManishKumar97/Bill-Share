@@ -24,7 +24,7 @@ class Main extends StatelessWidget {
         name: "",
         email: "",
         uid: "",
-        friends: [],
+        friends: {},
       ),
       value: AuthService().authchanges,
       child: const MaterialApp(

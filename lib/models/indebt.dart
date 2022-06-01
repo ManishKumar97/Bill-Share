@@ -14,6 +14,7 @@ enum indebtstatus {
 @JsonSerializable()
 class Indebt {
   final String indebtId;
+  final String groupId;
   final String owedTo;
   final String owedBy;
   final double amount;
@@ -24,6 +25,7 @@ class Indebt {
 
   Indebt(
       {required this.indebtId,
+      required this.groupId,
       required this.owedTo,
       required this.owedBy,
       required this.amount,

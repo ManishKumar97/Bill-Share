@@ -18,7 +18,35 @@ class Groups extends StatefulWidget {
 }
 
 class _GroupsState extends State<Groups> {
+  double amountUserOwes = 0.0;
+  double amountUserGets = 0.0;
+  bool isLoading = true;
   final Database _db = Database();
+
+  Future<void> fetchStats() async {
+    try {
+      setState(() {
+        amountUserGets = 0.0;
+        amountUserGets = 0.0;
+        isLoading = true;
+      });
+      double val1 =
+          await _db.getAmountUserGetsInGroup(groupType.group, widget.user.uid);
+      double val2 =
+          await _db.getAmountUserOwesInGroup(groupType.group, widget.user.uid);
+      setState(() {
+        amountUserGets = val1;
+        amountUserOwes = val2;
+        isLoading = false;
+      });
+    } catch (e) {}
+  }
+
+  @override
+  void initState() {
+    fetchStats();
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,38 +63,47 @@ class _GroupsState extends State<Groups> {
           color: kPrimaryColor,
         ),
       ),
-      body: Column(
-        children: [
-          const Stats(),
-          Expanded(
-            child: StreamBuilder<QuerySnapshot<Group>>(
-              stream: _db.groupsRef
-                  .where('type', isEqualTo: 2)
-                  .where('membersUids', arrayContains: widget.user.uid)
-                  .withConverter<Group>(
-                      fromFirestore: ((snapshot, options) =>
-                          Group.fromJson(snapshot.data()!)),
-                      toFirestore: (group, _) => group.toJson())
-                  .snapshots(),
-              builder: (BuildContext context,
-                  AsyncSnapshot<QuerySnapshot<Group>> snapshot) {
-                if (snapshot.hasData) {
-                  final int friendsCount = snapshot.data!.docs.length;
+      body: isLoading
+          ? const Loading()
+          : Column(
+              children: [
+                Stats(
+                  getAmount: amountUserGets,
+                  owesAmount: amountUserOwes,
+                ),
+                Expanded(
+                  child: StreamBuilder<QuerySnapshot<Group>>(
+                    stream: _db.groupsRef
+                        .where('type', isEqualTo: 2)
+                        .where('membersUids', arrayContains: widget.user.uid)
+                        .withConverter<Group>(
+                            fromFirestore: ((snapshot, options) =>
+                                Group.fromJson(snapshot.data()!)),
+                            toFirestore: (group, _) => group.toJson())
+                        .snapshots(),
+                    builder: (BuildContext context,
+                        AsyncSnapshot<QuerySnapshot<Group>> snapshot) {
+                      if (snapshot.hasData) {
+                        final int friendsCount = snapshot.data!.docs.length;
 
-                  return ListView.builder(
-                      itemCount: friendsCount,
-                      itemBuilder: (context, index) {
-                        Group grp = snapshot.data!.docs[index].data();
-                        return GroupTile(group: grp, user: widget.user);
-                      });
-                }
+                        return ListView.builder(
+                            itemCount: friendsCount,
+                            itemBuilder: (context, index) {
+                              Group grp = snapshot.data!.docs[index].data();
+                              return GroupTile(
+                                group: grp,
+                                user: widget.user,
+                                fetchStats: fetchStats,
+                              );
+                            });
+                      }
 
-                return const Loading();
-              },
+                      return const Loading();
+                    },
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.add),
         backgroundColor: kPrimaryColor,
@@ -86,7 +123,12 @@ class GroupTile extends StatelessWidget {
   final Group group;
   final AppUser user;
   String? name;
-  GroupTile({required this.group, required this.user, Key? key})
+  final Function fetchStats;
+  GroupTile(
+      {required this.group,
+      required this.user,
+      required this.fetchStats,
+      Key? key})
       : super(key: key);
 
   @override
@@ -104,18 +146,15 @@ class GroupTile extends StatelessWidget {
           color: kPrimaryColor,
         ),
         title: Text(name!),
-        // trailing: const Icon(
-        //   Icons.keyboard_arrow_right,
-        //   color: kPrimaryColor,
-        // ),
-        onTap: () {
-          Navigator.push(
+        onTap: () async {
+          await Navigator.push(
               context,
               MaterialPageRoute(
                   builder: (context) => Bills(
                         currentUser: user,
                         group: group,
                       )));
+          await fetchStats();
         },
       ),
     );

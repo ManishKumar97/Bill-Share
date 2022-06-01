@@ -8,6 +8,7 @@ part of 'indebt.dart';
 
 Indebt _$IndebtFromJson(Map<String, dynamic> json) => Indebt(
       indebtId: json['indebtId'] as String,
+      groupId: json['groupId'] as String,
       owedTo: json['owedTo'] as String,
       owedBy: json['owedBy'] as String,
       amount: (json['amount'] as num).toDouble(),
@@ -19,6 +20,7 @@ Indebt _$IndebtFromJson(Map<String, dynamic> json) => Indebt(
 
 Map<String, dynamic> _$IndebtToJson(Indebt instance) => <String, dynamic>{
       'indebtId': instance.indebtId,
+      'groupId': instance.groupId,
       'owedTo': instance.owedTo,
       'owedBy': instance.owedBy,
       'amount': instance.amount,

@@ -10,6 +10,17 @@ enum billstatus {
   @JsonValue(2)
   settled,
 }
+const int equally = 0;
+const int percentage = 1;
+const int number = 2;
+enum splitType {
+  @JsonValue(0)
+  equally,
+  @JsonValue(1)
+  percentage,
+  @JsonValue(2)
+  number,
+}
 
 @JsonSerializable()
 class Bill {
@@ -22,7 +33,9 @@ class Bill {
   final String createdUserID;
   final String groupId;
   final String? comments;
+  final splitType splittype;
   final billstatus status;
+  final Map<String, double> memberShares;
 
   Bill(
       {required this.title,
@@ -34,7 +47,9 @@ class Bill {
       required this.createdUserID,
       required this.groupId,
       this.comments,
-      required this.status});
+      required this.splittype,
+      required this.status,
+      required this.memberShares});
 
   factory Bill.fromJson(Map<String, dynamic> json) => _$BillFromJson(json);
 

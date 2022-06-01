@@ -8,7 +8,7 @@ class AuthService {
   AppUser? _userFromFirebaseUser(User? user,
       {String name = "", String email = ""}) {
     return user != null
-        ? AppUser(name: name, email: user.email, uid: user.uid, friends: [])
+        ? AppUser(name: name, email: user.email, uid: user.uid, friends: {})
         : null;
   }
 
@@ -50,7 +50,7 @@ class AuthService {
           uid: user.uid,
           name: name,
           email: email,
-          friends: [],
+          friends: {},
           createdDate: DateTime.now(),
         );
         db.registerNewUser(loggedInUser);

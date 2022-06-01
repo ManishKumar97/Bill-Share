@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:billshare/constants.dart';
+import 'package:billshare/models/bill.dart';
 // import 'package:billshare/models/bill.dart';
 import 'package:billshare/models/group.dart';
 import 'package:billshare/models/user.dart';
@@ -29,7 +30,8 @@ class _AddBillState extends State<AddBill> {
   Map<String, double> equalShares = {};
   Map<String, double> percentageShares = {};
   Map<String, double> numberShares = {};
-  Map<String, bool> _isEqualShareChecked = {};
+  Map<String, bool> isEqualShareChecked = {};
+  List<TextEditingController> controllers = [];
   int friendsCount = 0;
   String comments = "";
   bool isLoading = false;
@@ -48,8 +50,10 @@ class _AddBillState extends State<AddBill> {
       equalShares[key] = v;
       percentageShares[key] = v;
       numberShares[key] = v;
-      _isEqualShareChecked[key] = false;
+      isEqualShareChecked[key] = false;
     });
+    controllers =
+        List.generate(2 * friendsCount, (index) => TextEditingController());
     super.initState();
   }
 
@@ -91,62 +95,78 @@ class _AddBillState extends State<AddBill> {
   }
 
   Future<void> handleSubmit(GlobalKey<FormState> key) async {
-    setState(() {
-      error = "";
-    });
-    if (key.currentState!.validate()) {
-      if (splitTypes[0]) {
-        int totalmembersCount = 0;
-        _isEqualShareChecked.forEach((key, value) {
-          if (value) ++totalmembersCount;
-        });
-        if (totalmembersCount == 0) {
-          setState(() {
-            error = " No users are selected to split";
+    try {
+      setState(() {
+        error = "";
+      });
+
+      if (key.currentState!.validate()) {
+        if (splitTypes[0]) {
+          int totalmembersCount = 0;
+          isEqualShareChecked.forEach((key, value) {
+            if (value) ++totalmembersCount;
           });
-          return;
-        }
-        _isEqualShareChecked.forEach((key, value) {
-          if (value) {
-            equalShares[key] = roundDouble(amount / totalmembersCount, 2);
+          if (totalmembersCount == 0) {
+            setState(() {
+              error = " No users are selected to split";
+            });
+            return;
           }
-        });
-      } else if (splitTypes[1]) {
-        double total = 0.0;
-        numberShares.forEach((key, value) {
-          total += value;
-        });
-        if (total != 100.0) {
-          setState(() {
-            error = "Percentage split do not add up to 100%";
+          isEqualShareChecked.forEach((key, value) {
+            if (value) {
+              equalShares[key] = roundDouble(amount / totalmembersCount, 2);
+            }
           });
-          return;
-        }
-        numberShares.forEach((key, value) {
-          value = roundDouble((amount * value) / 100, 2);
-        });
-      } else if (splitTypes[2]) {
-        double total = 0.0;
-        numberShares.forEach((key, value) {
-          total += value;
-        });
-        if (total != amount) {
-          setState(() {
-            error = "Numbers split do not add up to bill amount";
+        } else if (splitTypes[1]) {
+          double total = 0.0;
+          percentageShares.forEach((key, value) {
+            total += value;
           });
-          return;
+          if (total != 100.0) {
+            setState(() {
+              error = "Percentage split do not add up to 100%";
+            });
+            return;
+          }
+          percentageShares.forEach((key, value) {
+            percentageShares[key] = roundDouble((amount * value) / 100, 2);
+          });
+        } else if (splitTypes[2]) {
+          double total = 0.0;
+          numberShares.forEach((key, value) {
+            total += value;
+          });
+          if (total != amount) {
+            setState(() {
+              error = "Numbers split do not add up to bill amount";
+            });
+            return;
+          }
         }
+        Map<String, double> values = {};
+        if (splitTypes[0]) {
+          values = equalShares;
+        } else if (splitTypes[1]) {
+          values = percentageShares;
+        } else if (splitTypes[2]) {
+          values = numberShares;
+        }
+        comments += "\n ${widget.loggedInUser.name} added the bill";
+        await _db.addBill(
+          title,
+          amount,
+          dueDate,
+          paidBy,
+          widget.loggedInUser.uid,
+          widget.group.groupId,
+          comments,
+          values,
+          splitTypes,
+        );
+        Navigator.pop(context);
       }
-      Map<String, double> values = {};
-      if (splitTypes[0]) {
-        values = equalShares;
-      } else if (splitTypes[1]) {
-        values = percentageShares;
-      } else if (splitTypes[2]) {
-        values = numberShares;
-      }
-      await _db.addBill(title, amount, dueDate, paidBy, widget.loggedInUser.uid,
-          widget.group.groupId, comments, values);
+    } catch (e) {
+      print("Exception");
     }
   }
 
@@ -379,6 +399,9 @@ class _AddBillState extends State<AddBill> {
                                 splitTypes[i] = i == index;
                               }
                             });
+                            for (var element in controllers) {
+                              element.clear();
+                            }
                           },
                           borderRadius: BorderRadius.circular(19.0),
                         ),
@@ -404,10 +427,10 @@ class _AddBillState extends State<AddBill> {
                               ),
                               child: CheckboxListTile(
                                 title: Text(val),
-                                value: _isEqualShareChecked[key],
+                                value: isEqualShareChecked[key],
                                 onChanged: (val) {
                                   setState(() {
-                                    _isEqualShareChecked[key] = val!;
+                                    isEqualShareChecked[key] = val!;
                                   });
                                 },
                                 checkColor: Colors.white,
@@ -418,7 +441,7 @@ class _AddBillState extends State<AddBill> {
                     if (splitTypes[1])
                       ListView.builder(
                           shrinkWrap: true,
-                          itemCount: widget.group.members.length,
+                          itemCount: friendsCount,
                           physics: const NeverScrollableScrollPhysics(),
                           itemBuilder: (BuildContext context, int index) {
                             String key =
@@ -453,6 +476,7 @@ class _AddBillState extends State<AddBill> {
                                       borderRadius: BorderRadius.circular(19),
                                     ),
                                     child: TextFormField(
+                                      controller: controllers[index],
                                       textAlign: TextAlign.center,
                                       onChanged: (value) {
                                         if (double.tryParse(value) != null) {
@@ -468,8 +492,9 @@ class _AddBillState extends State<AddBill> {
                                       validator: (val) => ((val != null &&
                                                   val.isEmpty) ||
                                               (double.tryParse(val!) == null ||
-                                                  double.parse(val) == 0.0))
-                                          ? 'Please enter a valid amount'
+                                                  double.parse(val) < 0.0 ||
+                                                  double.parse(val) > 100.0))
+                                          ? 'Please enter a valid percentage'
                                           : null,
                                       cursorColor: kPrimaryColor,
                                       keyboardType:
@@ -494,7 +519,7 @@ class _AddBillState extends State<AddBill> {
                     if (splitTypes[2])
                       ListView.builder(
                           shrinkWrap: true,
-                          itemCount: widget.group.members.length,
+                          itemCount: friendsCount,
                           physics: const NeverScrollableScrollPhysics(),
                           itemBuilder: (BuildContext context, int index) {
                             String key =
@@ -529,6 +554,8 @@ class _AddBillState extends State<AddBill> {
                                       borderRadius: BorderRadius.circular(19),
                                     ),
                                     child: TextFormField(
+                                      controller:
+                                          controllers[index + friendsCount],
                                       textAlign: TextAlign.center,
                                       onChanged: (value) {
                                         if (double.tryParse(value) != null) {
