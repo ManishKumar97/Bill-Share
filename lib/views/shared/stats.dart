@@ -49,7 +49,7 @@ class _StatsState extends State<Stats> {
                       )),
                   const SizedBox(height: 10),
                   Text(
-                    "${widget.owesAmount}",
+                    "\$${widget.owesAmount}",
                     style: const TextStyle(
                       fontSize: 40,
                       color: Colors.white,
@@ -72,7 +72,7 @@ class _StatsState extends State<Stats> {
                       )),
                   const SizedBox(height: 10),
                   Text(
-                    "${widget.getAmount}",
+                    "\$${widget.getAmount}",
                     style: const TextStyle(
                       fontSize: 40,
                       color: Colors.white,

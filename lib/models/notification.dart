@@ -6,7 +6,12 @@ part 'notification.g.dart';
 class billNotification {
   final String? notificationId;
   final bool status;
-  final DateTime? whenToNotify;
+  final int year;
+  final int month;
+  final int day;
+  final int hours;
+  final int minutes;
+
   final String token;
   final String title;
   final String body;
@@ -14,7 +19,11 @@ class billNotification {
   billNotification(
       {required this.notificationId,
       required this.status,
-      required this.whenToNotify,
+      required this.year,
+      required this.month,
+      required this.day,
+      required this.hours,
+      required this.minutes,
       required this.token,
       required this.title,
       required this.body,

@@ -14,7 +14,9 @@ import 'package:flutter/services.dart';
 class AddBill extends StatefulWidget {
   final AppUser loggedInUser;
   final Group group;
-  const AddBill({Key? key, required this.loggedInUser, required this.group})
+  Bill? bill;
+  AddBill(
+      {Key? key, required this.loggedInUser, required this.group, this.bill})
       : super(key: key);
 
   @override
@@ -25,7 +27,8 @@ class _AddBillState extends State<AddBill> {
   String title = '';
   double amount = 0.0;
   String paidBy = "";
-  DateTime dueDate = DateTime.now().add(const Duration(days: 1));
+  DateTime dueDate = DateTime.now();
+  TimeOfDay dueTime = TimeOfDay.now();
   List<bool> splitTypes = [true, false, false];
   Map<String, double> equalShares = {};
   Map<String, double> percentageShares = {};
@@ -43,25 +46,74 @@ class _AddBillState extends State<AddBill> {
   @override
   void initState() {
     friendsCount = widget.group.membersUids.length;
-
     paidBy = widget.loggedInUser.uid;
+    if (widget.bill != null) {
+      title = widget.bill!.title;
+      amount = widget.bill!.amount;
+      dueDate = widget.bill!.dueDate;
+      paidBy = widget.bill!.paidBy;
+      comments = widget.bill!.comments!;
+    }
+
     widget.group.members.forEach((key, value) {
       double v = 0.0;
-      equalShares[key] = v;
-      percentageShares[key] = v;
-      numberShares[key] = v;
-      isEqualShareChecked[key] = false;
+      if (widget.bill != null && widget.bill!.memberShares.containsKey(key)) {
+        v = widget.bill!.memberShares[key]!;
+        if (widget.bill!.splittype == splitType.equally) {
+          equalShares[key] = v;
+          isEqualShareChecked[key] = true;
+        } else if (widget.bill!.splittype == splitType.percentage) {
+          percentageShares[key] = v;
+        } else if (widget.bill!.splittype == splitType.number) {
+          numberShares[key] = v;
+        }
+      } else {
+        equalShares[key] = v;
+        percentageShares[key] = v;
+        numberShares[key] = v;
+        isEqualShareChecked[key] = false;
+      }
     });
     controllers =
         List.generate(2 * friendsCount, (index) => TextEditingController());
     super.initState();
   }
 
+  Future<void> _selectTime(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: dueTime,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: kPrimaryColor, // header background color
+              onPrimary: Colors.white, // header text color
+              onSurface: Colors.black, // body text color
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                primary: kPrimaryColor, // button text color
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && picked != dueTime) {
+      setState(() {
+        dueTime = picked;
+      });
+    }
+  }
+
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: dueDate,
-      firstDate: DateTime.now().add(const Duration(days: 1)),
+      firstDate: DateTime.now(),
       lastDate: DateTime(2101),
       builder: (context, child) {
         return Theme(
@@ -151,8 +203,16 @@ class _AddBillState extends State<AddBill> {
         } else if (splitTypes[2]) {
           values = numberShares;
         }
-        comments += "\n ${widget.loggedInUser.name} added the bill";
+        if (widget.bill == null) {
+          comments += "\n-- ${widget.loggedInUser.name} added the bill";
+        } else if (widget.bill != null) {
+          comments += "\n-- ${widget.loggedInUser.name} updated the bill";
+        }
+        dueDate = DateTime(dueDate.year, dueDate.month, dueDate.day,
+            dueTime.hour, dueTime.minute);
+        String billId = (widget.bill != null) ? widget.bill!.billId : "";
         await _db.addBill(
+          billId,
           title,
           amount,
           dueDate,
@@ -214,6 +274,7 @@ class _AddBillState extends State<AddBill> {
                         borderRadius: BorderRadius.circular(19),
                       ),
                       child: TextFormField(
+                        initialValue: title,
                         onChanged: (value) {
                           setState(() => title = value);
                         },
@@ -241,6 +302,7 @@ class _AddBillState extends State<AddBill> {
                         borderRadius: BorderRadius.circular(19),
                       ),
                       child: TextFormField(
+                        initialValue: amount.toString(),
                         onChanged: (value) {
                           if (double.tryParse(value) != null) {
                             setState(() => amount = double.parse(value));
@@ -269,6 +331,44 @@ class _AddBillState extends State<AddBill> {
                         ),
                       ),
                     ),
+                    Container(
+                      margin: const EdgeInsets.symmetric(vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 5),
+                      width: size.width,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(19),
+                      ),
+                      child: DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(
+                          hintText: "Paid By",
+                          labelText: "Paid By",
+                          labelStyle: TextStyle(color: kPrimaryColor),
+                          // helperText: "Paid By",
+                          border: InputBorder.none,
+                        ),
+                        items: widget.group.members
+                            .map((uid, name) {
+                              return MapEntry(
+                                  uid,
+                                  DropdownMenuItem<String>(
+                                    value: uid,
+                                    child: Text(name),
+                                  ));
+                            })
+                            .values
+                            .toList(),
+                        value: paidBy,
+                        onChanged: (String? newvalue) {
+                          if (newvalue != null) {
+                            setState(() {
+                              paidBy = newvalue;
+                            });
+                          }
+                        },
+                      ),
+                    ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
@@ -277,47 +377,11 @@ class _AddBillState extends State<AddBill> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 20, vertical: 5),
                           width: size.width / 2,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(19),
-                          ),
-                          child: DropdownButtonFormField<String>(
-                            decoration: const InputDecoration(
-                              hintText: "Paid By",
-                              labelText: "Paid By",
-                              labelStyle: TextStyle(color: kPrimaryColor),
-                              // helperText: "Paid By",
-                              border: InputBorder.none,
-                            ),
-                            items: widget.group.members
-                                .map((uid, name) {
-                                  return MapEntry(
-                                      uid,
-                                      DropdownMenuItem<String>(
-                                        value: uid,
-                                        child: Text(name),
-                                      ));
-                                })
-                                .values
-                                .toList(),
-                            value: paidBy,
-                            onChanged: (String? newvalue) {
-                              if (newvalue != null) {
-                                setState(() {
-                                  paidBy = newvalue;
-                                });
-                              }
-                            },
-                          ),
-                        ),
-                        Container(
-                          margin: const EdgeInsets.symmetric(vertical: 10),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 5),
-                          width: size.width / 2,
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             color: kPrimaryColor,
-                            borderRadius: BorderRadius.circular(19),
+                            borderRadius: BorderRadius.only(
+                                topLeft: Radius.circular(19.0),
+                                bottomLeft: Radius.circular(19.0)),
                           ),
                           child: Column(
                             children: [
@@ -338,6 +402,41 @@ class _AddBillState extends State<AddBill> {
                               ),
                               const Text(
                                 "Due date",
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          margin: const EdgeInsets.symmetric(vertical: 10),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 5),
+                          width: size.width / 2,
+                          decoration: const BoxDecoration(
+                            color: kPrimaryColor,
+                            borderRadius: BorderRadius.only(
+                                topRight: Radius.circular(19.0),
+                                bottomRight: Radius.circular(19.0)),
+                          ),
+                          child: Column(
+                            children: [
+                              ElevatedButton.icon(
+                                icon: const Icon(
+                                  Icons.schedule,
+                                  color: Colors.white,
+                                  size: 24.0,
+                                ),
+                                label: Text(dueTime.format(context)),
+                                onPressed: () {
+                                  _selectTime(context);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  primary: kPrimaryColor,
+                                  elevation: 0.0,
+                                ),
+                              ),
+                              const Text(
+                                "Due Time",
                                 style: TextStyle(color: Colors.white),
                               ),
                             ],
@@ -554,6 +653,10 @@ class _AddBillState extends State<AddBill> {
                                       borderRadius: BorderRadius.circular(19),
                                     ),
                                     child: TextFormField(
+                                      // initialValue:
+                                      //     (numberShares[key].toString() != "")
+                                      //         ? numberShares[key].toString()
+                                      //         : "",
                                       controller:
                                           controllers[index + friendsCount],
                                       textAlign: TextAlign.center,
@@ -603,6 +706,7 @@ class _AddBillState extends State<AddBill> {
                         borderRadius: BorderRadius.circular(19),
                       ),
                       child: TextFormField(
+                        initialValue: comments,
                         onChanged: (value) {
                           setState(() => comments = value);
                         },

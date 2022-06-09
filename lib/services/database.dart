@@ -117,8 +117,30 @@ class Database {
     return true;
   }
 
+  Future<bool> deleteIndebt(
+    String billId,
+  ) async {
+    WriteBatch batch = _db.batch();
+    final indebtRecordRef = indebtRef
+        .where("billId", isEqualTo: billId)
+        .withConverter<Indebt>(
+            fromFirestore: ((snapshot, options) =>
+                Indebt.fromJson(snapshot.data()!)),
+            toFirestore: (indebt, _) => indebt.toJson());
+
+    QuerySnapshot<Indebt> querySnapshot = await indebtRecordRef.get();
+    // HashSet<String> indebtIds = HashSet<String>();
+    List<DocumentReference<Indebt>> docRefs = [];
+
+    for (var doc in querySnapshot.docs) {
+      batch.delete(indebtRef.doc(doc.id));
+    }
+    await batch.commit();
+    return true;
+  }
+
   Future<void> addNotification(
-      String userId, DateTime now, String title) async {
+      String userId, DateTime now, String title, DateTime dueDate) async {
     try {
       final queryRef = usersRef.doc(userId).withConverter<AppUser>(
           fromFirestore: ((snapshot, options) =>
@@ -132,8 +154,12 @@ class Database {
           notificationId: notId,
           status: false,
           token: (user.token != null) ? user.token! : "",
-          whenToNotify: now,
-          title: "Bill Added " + title,
+          year: now.year,
+          month: now.month,
+          day: now.day,
+          hours: now.hour,
+          minutes: now.minute,
+          title: title,
           body: "",
         );
         final docRef = notificationRef
@@ -142,7 +168,27 @@ class Database {
                 fromFirestore: ((snapshot, options) =>
                     billNotification.fromJson(snapshot.data()!)),
                 toFirestore: (notf, _) => notf.toJson());
-        await docRef.set(notf);
+        docRef.set(notf);
+        notId = notificationRef.doc().id;
+        notf = billNotification(
+          notificationId: notId,
+          status: false,
+          token: (user.token != null) ? user.token! : "",
+          year: dueDate.year,
+          month: dueDate.month,
+          day: dueDate.day,
+          hours: dueDate.hour,
+          minutes: dueDate.minute,
+          title: title,
+          body: "",
+        );
+        final newdocRef = notificationRef
+            .doc(notId)
+            .withConverter<billNotification>(
+                fromFirestore: ((snapshot, options) =>
+                    billNotification.fromJson(snapshot.data()!)),
+                toFirestore: (notf, _) => notf.toJson());
+        newdocRef.set(notf);
       }
     } catch (e) {
       print("error adding notification");
@@ -150,6 +196,7 @@ class Database {
   }
 
   Future addBill(
+    String billId,
     String title,
     double amount,
     DateTime dueDate,
@@ -161,7 +208,46 @@ class Database {
     List<bool> splittype,
   ) async {
     try {
-      String billId = billsRef.doc().id;
+      if (billId != "") {
+        DateTime now = DateTime.now();
+
+        await _db.runTransaction((transaction) async {
+          final docRef = billsRef.doc(billId).withConverter<Bill>(
+              fromFirestore: ((snapshot, options) =>
+                  Bill.fromJson(snapshot.data()!)),
+              toFirestore: (bill, _) => bill.toJson());
+
+          // await docRef.set(bill);
+          transaction.update(docRef, {
+            "amount": amount,
+            "title": title,
+            "billId": billId,
+            "dueDate": dueDate.toString(),
+            "paidBy": paidBy,
+            "createdUserID": createdUserId,
+            "groupId": groupId,
+            "comments": comments,
+            "status": 1,
+            "splittype": (splittype[0]) ? 0 : (splittype[1] ? 1 : 2),
+            "memberShares": values
+          });
+          values.forEach((key, value) async {
+            if (key != paidBy && value > 0.0) {
+              await deleteIndebt(billId);
+              await addIndebt(
+                  paidBy, key, value, now, billId, dueDate, groupId);
+              await addNotification(
+                  key, now, "Bill Updated: " + title, dueDate);
+            }
+          });
+        }).then(
+          (value) => print("DocumentSnapshot successfully updated!"),
+          onError: (e) => print("Error updating document $e"),
+        );
+
+        return;
+      }
+      billId = billsRef.doc().id;
       DateTime now = DateTime.now();
       Bill bill = Bill(
           amount: amount,
@@ -190,7 +276,7 @@ class Database {
         values.forEach((key, value) async {
           if (key != paidBy && value > 0.0) {
             await addIndebt(paidBy, key, value, now, billId, dueDate, groupId);
-            await addNotification(key, now, title);
+            await addNotification(key, now, "Bill Added: " + title, dueDate);
           }
         });
       }).then(

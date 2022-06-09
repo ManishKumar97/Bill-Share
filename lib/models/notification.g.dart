@@ -10,9 +10,11 @@ billNotification _$billNotificationFromJson(Map<String, dynamic> json) =>
     billNotification(
       notificationId: json['notificationId'] as String?,
       status: json['status'] as bool,
-      whenToNotify: json['whenToNotify'] == null
-          ? null
-          : DateTime.parse(json['whenToNotify'] as String),
+      year: json['year'] as int,
+      month: json['month'] as int,
+      day: json['day'] as int,
+      hours: json['hours'] as int,
+      minutes: json['minutes'] as int,
       token: json['token'] as String,
       title: json['title'] as String,
       body: json['body'] as String,
@@ -25,7 +27,11 @@ Map<String, dynamic> _$billNotificationToJson(billNotification instance) =>
     <String, dynamic>{
       'notificationId': instance.notificationId,
       'status': instance.status,
-      'whenToNotify': instance.whenToNotify?.toIso8601String(),
+      'year': instance.year,
+      'month': instance.month,
+      'day': instance.day,
+      'hours': instance.hours,
+      'minutes': instance.minutes,
       'token': instance.token,
       'title': instance.title,
       'body': instance.body,
