@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:billshare/models/user.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:billshare/views/wrapper.dart';
+import 'package:overlay_support/overlay_support.dart';
 import 'package:provider/provider.dart';
 import "package:billshare/services/auth_service.dart";
 import 'firebase_options.dart';
@@ -19,16 +22,18 @@ class Main extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamProvider<AppUser?>.value(
-      initialData: AppUser(
-        name: "",
-        email: "",
-        uid: "",
-        friends: {},
-      ),
-      value: AuthService().authchanges,
-      child: const MaterialApp(
-        home: Wrapper(),
+    return OverlaySupport(
+      child: StreamProvider<AppUser?>.value(
+        initialData: AppUser(
+          name: "",
+          email: "",
+          uid: "",
+          friends: {},
+        ),
+        value: AuthService().authchanges,
+        child: const MaterialApp(
+          home: Wrapper(),
+        ),
       ),
     );
   }

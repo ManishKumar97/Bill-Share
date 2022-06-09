@@ -1,6 +1,7 @@
 import 'package:billshare/models/user.dart';
 import 'package:billshare/services/database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -45,6 +46,8 @@ class AuthService {
           email: email, password: password);
       User? user = result.user;
       AppUser? loggedInUser;
+      final FirebaseMessaging _fcm = FirebaseMessaging.instance;
+      String? _fcmToken = await _fcm.getToken();
       if (user != null) {
         loggedInUser = AppUser(
           uid: user.uid,
@@ -52,6 +55,7 @@ class AuthService {
           email: email,
           friends: {},
           createdDate: DateTime.now(),
+          token: _fcmToken,
         );
         db.registerNewUser(loggedInUser);
       }

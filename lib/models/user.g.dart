@@ -16,6 +16,7 @@ AppUser _$AppUserFromJson(Map<String, dynamic> json) => AppUser(
       createdDate: json['createdDate'] == null
           ? null
           : DateTime.parse(json['createdDate'] as String),
+      token: json['token'] as String?,
     );
 
 Map<String, dynamic> _$AppUserToJson(AppUser instance) => <String, dynamic>{
@@ -24,4 +25,5 @@ Map<String, dynamic> _$AppUserToJson(AppUser instance) => <String, dynamic>{
       'uid': instance.uid,
       'friends': instance.friends,
       'createdDate': instance.createdDate?.toIso8601String(),
+      'token': instance.token,
     };
