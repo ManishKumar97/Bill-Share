@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:billshare/models/bill.dart';
 import 'package:billshare/models/group.dart';
 import 'package:billshare/models/indebt.dart';
@@ -142,7 +144,7 @@ class Database {
               : (splittype[1] ? splitType.percentage : splitType.number),
           memberShares: values);
 
-      _db.runTransaction((transaction) async {
+      await _db.runTransaction((transaction) async {
         final docRef = billsRef.doc(billId).withConverter<Bill>(
             fromFirestore: ((snapshot, options) =>
                 Bill.fromJson(snapshot.data()!)),
@@ -171,6 +173,7 @@ class Database {
       final indebtRecordRef = indebtRef
           .where("billId", isEqualTo: billId)
           .where("owedBy", isEqualTo: userId)
+          .where("status", isEqualTo: 1)
           .withConverter<Indebt>(
               fromFirestore: ((snapshot, options) =>
                   Indebt.fromJson(snapshot.data()!)),
@@ -188,6 +191,7 @@ class Database {
       final indebtRecordRef = indebtRef
           .where("billId", isEqualTo: billId)
           .where("owedTo", isEqualTo: userId)
+          .where("status", isEqualTo: 1)
           .withConverter<Indebt>(
               fromFirestore: ((snapshot, options) =>
                   Indebt.fromJson(snapshot.data()!)),
@@ -216,6 +220,7 @@ class Database {
                   Group.fromJson(snapshot.data()!)),
               toFirestore: (group, _) => group.toJson());
       final indebtRecordsRef = indebtRef
+          .where("status", isEqualTo: 1)
           .where("owedTo", isEqualTo: userId)
           .withConverter<Indebt>(
               fromFirestore: ((snapshot, options) =>
@@ -250,6 +255,7 @@ class Database {
                   Group.fromJson(snapshot.data()!)),
               toFirestore: (group, _) => group.toJson());
       final indebtRecordsRef = indebtRef
+          .where("status", isEqualTo: 1)
           .where("owedBy", isEqualTo: userId)
           .withConverter<Indebt>(
               fromFirestore: ((snapshot, options) =>
@@ -278,6 +284,7 @@ class Database {
     try {
       final owedByRecordRef = indebtRef
           .where("groupId", isEqualTo: groupId)
+          .where("status", isEqualTo: 1)
           .where("owedBy", isEqualTo: currentUserId)
           .where("owedTo", isEqualTo: friendUserId)
           .withConverter<Indebt>(
@@ -292,6 +299,7 @@ class Database {
       }
       final owedToRecordRef = indebtRef
           .where("groupId", isEqualTo: groupId)
+          .where("status", isEqualTo: 1)
           .where("owedBy", isEqualTo: friendUserId)
           .where("owedTo", isEqualTo: currentUserId)
           .withConverter<Indebt>(
@@ -345,5 +353,74 @@ class Database {
     } catch (e) {
       print("cannot add friend");
     }
+  }
+
+  Future settleDebtsInGroup(
+      AppUser user,
+      Group group,
+      Map<String, double> totalAmountToSettleInGroup,
+      Map<String, bool> friendsToSettle) async {
+    try {
+      WriteBatch batch = _db.batch();
+      final indebtRecordRef = indebtRef
+          .where("groupId", isEqualTo: group.groupId)
+          .where("status", isEqualTo: 1)
+          .withConverter<Indebt>(
+              fromFirestore: ((snapshot, options) =>
+                  Indebt.fromJson(snapshot.data()!)),
+              toFirestore: (indebt, _) => indebt.toJson());
+
+      QuerySnapshot<Indebt> querySnapshot = await indebtRecordRef.get();
+      HashSet<String> billIds = HashSet<String>();
+      List<DocumentReference<Indebt>> docRefs = [];
+
+      for (var doc in querySnapshot.docs) {
+        if (friendsToSettle.containsKey(doc.data().owedBy) &&
+            friendsToSettle[doc.data().owedBy]! &&
+            doc.data().owedTo == user.uid) {
+          if (totalAmountToSettleInGroup[doc.data().owedBy]! > 0) {
+            billIds.add(doc.data().billId);
+            batch.update(indebtRef.doc(doc.id), {"status": 2});
+          }
+        } else if (friendsToSettle.containsKey(doc.data().owedTo) &&
+            friendsToSettle[doc.data().owedTo]! &&
+            doc.data().owedBy == user.uid) {
+          if (totalAmountToSettleInGroup[doc.data().owedTo]! < 0) {
+            billIds.add(doc.data().billId);
+            batch.update(indebtRef.doc(doc.id), {"status": 2});
+          }
+        }
+      }
+      await batch.commit();
+      await updateBillStatusOnSettle(billIds);
+
+      return true;
+    } catch (e) {
+      print("Unable to settle group");
+    }
+  }
+
+  Future updateBillStatusOnSettle(HashSet<String> billIds) async {
+    WriteBatch batch = _db.batch();
+    QuerySnapshot<Indebt> querySnapshot;
+    HashSet<String> settledBills = HashSet<String>();
+    for (var id in billIds) {
+      querySnapshot = await indebtRef
+          .where("billId", isEqualTo: id)
+          .where("status", isEqualTo: 1)
+          .withConverter<Indebt>(
+              fromFirestore: ((snapshot, options) =>
+                  Indebt.fromJson(snapshot.data()!)),
+              toFirestore: (indebt, _) => indebt.toJson())
+          .get();
+      if (querySnapshot.docs.isEmpty) settledBills.add(id);
+    }
+
+    for (var id in settledBills) {
+      batch.update(billsRef.doc(id), {"status": 2});
+    }
+    await batch.commit();
+
+    return true;
   }
 }
