@@ -2,6 +2,7 @@ import 'package:billshare/constants.dart';
 import 'package:billshare/models/bill.dart';
 import 'package:billshare/models/group.dart';
 import 'package:billshare/models/user.dart';
+import 'package:billshare/services/database.dart';
 import 'package:billshare/views/bills/addBill.dart';
 import "package:flutter/material.dart";
 import 'package:intl/intl.dart';
@@ -22,6 +23,7 @@ class ViewBills extends StatefulWidget {
 }
 
 class _ViewBillsState extends State<ViewBills> {
+  final Database _db = Database();
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
@@ -46,6 +48,14 @@ class _ViewBillsState extends State<ViewBills> {
                               bill: widget.bill,
                             )));
                 //setState(() {});
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete),
+              tooltip: 'Delete bill',
+              onPressed: () async {
+                await _db.deleteBill(widget.bill.billId);
+                Navigator.pop(context);
               },
             ),
           ],

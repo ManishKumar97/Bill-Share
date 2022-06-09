@@ -56,16 +56,16 @@ class _SettingsState extends State<Settings> {
               icon: const Icon(Icons.account_circle),
               press: () => {},
             ),
-            ProfileMenu(
-              text: "Notifications",
-              icon: const Icon(Icons.notifications),
-              press: () {},
-            ),
-            ProfileMenu(
-              text: "Settings",
-              icon: const Icon(Icons.settings),
-              press: () {},
-            ),
+            // ProfileMenu(
+            //   text: "Notifications",
+            //   icon: const Icon(Icons.notifications),
+            //   press: () {},
+            // ),
+            // ProfileMenu(
+            //   text: "Settings",
+            //   icon: const Icon(Icons.settings),
+            //   press: () {},
+            // ),
             ProfileMenu(
               text: "Log Out",
               icon: const Icon(Icons.exit_to_app),

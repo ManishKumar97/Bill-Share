@@ -139,6 +139,25 @@ class Database {
     return true;
   }
 
+  Future<void> deleteBill(String billId) async {
+    deleteIndebt(billId);
+    WriteBatch batch = _db.batch();
+    final billRecordRef = billsRef
+        .where("billId", isEqualTo: billId)
+        .withConverter<Bill>(
+            fromFirestore: ((snapshot, options) =>
+                Bill.fromJson(snapshot.data()!)),
+            toFirestore: (indebt, _) => indebt.toJson());
+
+    QuerySnapshot<Bill> querySnapshot = await billRecordRef.get();
+    List<DocumentReference<Bill>> docRefs = [];
+    for (var doc in querySnapshot.docs) {
+      batch.delete(billsRef.doc(doc.id));
+    }
+    batch.commit();
+    return;
+  }
+
   Future<void> addNotification(
       String userId, DateTime now, String title, DateTime dueDate) async {
     try {
@@ -159,7 +178,7 @@ class Database {
           day: now.day,
           hours: now.hour,
           minutes: now.minute,
-          title: title,
+          title: "Bill added: " + title,
           body: "",
         );
         final docRef = notificationRef
@@ -179,7 +198,7 @@ class Database {
           day: dueDate.day,
           hours: dueDate.hour,
           minutes: dueDate.minute,
-          title: title,
+          title: "Bill Due today: " + title,
           body: "",
         );
         final newdocRef = notificationRef
@@ -236,8 +255,7 @@ class Database {
               await deleteIndebt(billId);
               await addIndebt(
                   paidBy, key, value, now, billId, dueDate, groupId);
-              await addNotification(
-                  key, now, "Bill Updated: " + title, dueDate);
+              await addNotification(key, now, title, dueDate);
             }
           });
         }).then(
@@ -276,7 +294,7 @@ class Database {
         values.forEach((key, value) async {
           if (key != paidBy && value > 0.0) {
             await addIndebt(paidBy, key, value, now, billId, dueDate, groupId);
-            await addNotification(key, now, "Bill Added: " + title, dueDate);
+            await addNotification(key, now, title, dueDate);
           }
         });
       }).then(
