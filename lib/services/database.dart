@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'package:billshare/models/bill.dart';
 import 'package:billshare/models/group.dart';
 import 'package:billshare/models/indebt.dart';
+import 'package:billshare/models/notification.dart';
 import 'package:billshare/models/user.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +21,8 @@ class Database {
       FirebaseFirestore.instance.collection('bills');
   final CollectionReference indebtRef =
       FirebaseFirestore.instance.collection('indebts');
+  final CollectionReference notificationRef =
+      FirebaseFirestore.instance.collection('notifications');
 
   Future registerNewUser(AppUser loggedInUser) async {
     try {
@@ -114,6 +117,38 @@ class Database {
     return true;
   }
 
+  Future<void> addNotification(
+      String userId, DateTime now, String title) async {
+    try {
+      final queryRef = usersRef.doc(userId).withConverter<AppUser>(
+          fromFirestore: ((snapshot, options) =>
+              AppUser.fromJson(snapshot.data()!)),
+          toFirestore: (user, _) => user.toJson());
+      DocumentSnapshot<AppUser> querySnapshot = await queryRef.get();
+      AppUser? user = querySnapshot.data();
+      if (user != null && user.token != null) {
+        String notId = notificationRef.doc().id;
+        billNotification notf = billNotification(
+          notificationId: notId,
+          status: false,
+          token: (user.token != null) ? user.token! : "",
+          whenToNotify: now,
+          title: "Bill Added " + title,
+          body: "",
+        );
+        final docRef = notificationRef
+            .doc(notId)
+            .withConverter<billNotification>(
+                fromFirestore: ((snapshot, options) =>
+                    billNotification.fromJson(snapshot.data()!)),
+                toFirestore: (notf, _) => notf.toJson());
+        await docRef.set(notf);
+      }
+    } catch (e) {
+      print("error adding notification");
+    }
+  }
+
   Future addBill(
     String title,
     double amount,
@@ -155,6 +190,7 @@ class Database {
         values.forEach((key, value) async {
           if (key != paidBy && value > 0.0) {
             await addIndebt(paidBy, key, value, now, billId, dueDate, groupId);
+            await addNotification(key, now, title);
           }
         });
       }).then(

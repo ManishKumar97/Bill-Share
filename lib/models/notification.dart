@@ -3,7 +3,7 @@ import 'package:json_annotation/json_annotation.dart';
 part 'notification.g.dart';
 
 @JsonSerializable()
-class Notification {
+class billNotification {
   final String? notificationId;
   final bool status;
   final DateTime? whenToNotify;
@@ -11,7 +11,7 @@ class Notification {
   final String title;
   final String body;
   final DateTime? createdDate;
-  Notification(
+  billNotification(
       {required this.notificationId,
       required this.status,
       required this.whenToNotify,
@@ -20,8 +20,8 @@ class Notification {
       required this.body,
       this.createdDate});
 
-  factory Notification.fromJson(Map<String, dynamic> json) =>
-      _$NotificationFromJson(json);
+  factory billNotification.fromJson(Map<String, dynamic> json) =>
+      _$billNotificationFromJson(json);
 
-  Map<String, dynamic> toJson() => _$NotificationToJson(this);
+  Map<String, dynamic> toJson() => _$billNotificationToJson(this);
 }

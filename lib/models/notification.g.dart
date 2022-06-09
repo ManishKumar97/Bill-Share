@@ -6,7 +6,8 @@ part of 'notification.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-Notification _$NotificationFromJson(Map<String, dynamic> json) => Notification(
+billNotification _$billNotificationFromJson(Map<String, dynamic> json) =>
+    billNotification(
       notificationId: json['notificationId'] as String?,
       status: json['status'] as bool,
       whenToNotify: json['whenToNotify'] == null
@@ -20,7 +21,7 @@ Notification _$NotificationFromJson(Map<String, dynamic> json) => Notification(
           : DateTime.parse(json['createdDate'] as String),
     );
 
-Map<String, dynamic> _$NotificationToJson(Notification instance) =>
+Map<String, dynamic> _$billNotificationToJson(billNotification instance) =>
     <String, dynamic>{
       'notificationId': instance.notificationId,
       'status': instance.status,

@@ -2,6 +2,7 @@ import 'package:billshare/constants.dart';
 import 'package:billshare/models/bill.dart';
 import 'package:billshare/models/group.dart';
 import 'package:billshare/models/user.dart';
+import 'package:billshare/views/bills/addBill.dart';
 import "package:flutter/material.dart";
 import 'package:intl/intl.dart';
 
@@ -31,6 +32,23 @@ class _ViewBillsState extends State<ViewBills> {
             style: const TextStyle(
                 fontFamily: "DancingScript", color: kPrimaryColor),
           ),
+          actions: <Widget>[
+            IconButton(
+              icon: const Icon(Icons.edit),
+              tooltip: 'edit bill',
+              onPressed: () async {
+                await Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => AddBill(
+                              loggedInUser: widget.loggedInUser,
+                              group: widget.group,
+                              bill: widget.bill,
+                            )));
+                //setState(() {});
+              },
+            ),
+          ],
           backgroundColor: Colors.white,
           iconTheme: const IconThemeData(
             color: kPrimaryColor, //change your color here
